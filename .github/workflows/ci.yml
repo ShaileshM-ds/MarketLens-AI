@@ -2,22 +2,35 @@ name: verify
 on: [push, pull_request]
 jobs:
   backend:
-    runs-on: ubuntu-latest
-    services:
-      mongo:
-        image: mongo:8.0
-        ports: ['27017:27017']
+    runs-on: [self-hosted, windows, x64]
     env:
       MONGO_URI: mongodb://localhost:27017
+      MONGO_CONTAINER: marketlens-mongo-${{ github.run_id }}-${{ github.run_attempt }}
       PYTHONPATH: backend
     steps:
       - uses: actions/checkout@v4
+      # Windows runners need Docker in Linux-container mode for the MongoDB image.
+      - name: Start MongoDB
+        run: docker run --detach --publish 27017:27017 --name "$env:MONGO_CONTAINER" mongo:8.0
+      - name: Wait for MongoDB
+        run: |
+          for ($i = 0; $i -lt 30; $i++) {
+            docker exec $env:MONGO_CONTAINER mongosh --quiet --eval "db.adminCommand('ping').ok" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              exit 0
+            }
+            Start-Sleep -Seconds 2
+          }
+          throw "MongoDB did not become ready in 60 seconds."
       - uses: actions/setup-python@v5
         with: {python-version: '3.13'}
       - run: pip install -r backend/requirements.txt
       - run: pytest backend/tests -q
+      - name: Remove MongoDB
+        if: always()
+        run: docker rm --force $env:MONGO_CONTAINER
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, windows, x64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
