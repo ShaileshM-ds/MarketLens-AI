@@ -29,9 +29,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.13.12'
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements.lock
+
+      - name: Verify Python and pip
+        shell: powershell
+        run: |
+          python --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "Python is not available on PATH after setup."
+          }
+          python -m pip --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "The configured Python installation does not include pip."
+          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -75,7 +87,7 @@ jobs:
 
       - name: Install backend dependencies
         shell: powershell
-        run: python -m pip install -r backend/requirements.txt
+        run: python -m pip install -r backend/requirements.lock
 
       - name: Run backend tests
         shell: powershell
