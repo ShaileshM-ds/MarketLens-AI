@@ -20,30 +20,11 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     env:
       MONGO_CONTAINER: marketlens-mongo-${{ github.run_id }}-${{ github.run_attempt }}
-      PYTHONPATH: backend
+      MONGO_NETWORK: marketlens-test-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13.12'
-          cache: pip
-          cache-dependency-path: backend/requirements.lock
-
-      - name: Verify Python and pip
-        shell: powershell
-        run: |
-          python --version
-          if ($LASTEXITCODE -ne 0) {
-            throw "Python is not available on PATH after setup."
-          }
-          python -m pip --version
-          if ($LASTEXITCODE -ne 0) {
-            throw "The configured Python installation does not include pip."
-          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -55,23 +36,14 @@ jobs:
       - name: Start MongoDB
         shell: powershell
         run: |
-          docker run --detach --publish 127.0.0.1::27017 --name $env:MONGO_CONTAINER mongo:8.0
+          docker network create $env:MONGO_NETWORK
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not create the backend test Docker network."
+          }
+          docker run --detach --network $env:MONGO_NETWORK --network-alias mongo --name $env:MONGO_CONTAINER mongo:8.0
           if ($LASTEXITCODE -ne 0) {
             throw "Could not start the MongoDB test container."
           }
-          $publishedPort = docker port $env:MONGO_CONTAINER 27017/tcp
-          if ($LASTEXITCODE -ne 0 -or -not $publishedPort) {
-            throw "Could not determine the MongoDB test container's host port."
-          }
-          $port = ($publishedPort.Trim() -split ':')[-1]
-          if ($port -notmatch '^\d+$') {
-            throw "Docker returned an invalid MongoDB host port: '$publishedPort'."
-          }
-          [System.IO.File]::AppendAllText(
-            $env:GITHUB_ENV,
-            "MONGO_URI=mongodb://127.0.0.1:$port`n",
-            [System.Text.UTF8Encoding]::new($false)
-          )
 
       - name: Wait for MongoDB
         shell: powershell
@@ -85,13 +57,20 @@ jobs:
           }
           throw "MongoDB did not become ready in 60 seconds."
 
-      - name: Install backend dependencies
+      - name: Install dependencies and run backend tests
         shell: powershell
-        run: python -m pip install -r backend/requirements.lock
-
-      - name: Run backend tests
-        shell: powershell
-        run: python -m pytest backend/tests -q
+        run: |
+          $workspace = $env:GITHUB_WORKSPACE
+          docker run --rm --network $env:MONGO_NETWORK `
+            --env MONGO_URI=mongodb://mongo:27017 `
+            --env PYTHONPATH=backend `
+            --volume "${workspace}:/workspace" `
+            --workdir /workspace `
+            python:3.13-slim `
+            sh -c "python -m pip install --disable-pip-version-check -r backend/requirements.lock && python -m pytest backend/tests -q"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Backend dependency installation or tests failed in the Python container."
+          }
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -115,6 +94,10 @@ jobs:
           docker rm --force $env:MONGO_CONTAINER
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "Could not remove MongoDB test container '$env:MONGO_CONTAINER'."
+          }
+          docker network rm $env:MONGO_NETWORK
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Could not remove backend test network '$env:MONGO_NETWORK'."
           }
 
   build-and-save-images:
