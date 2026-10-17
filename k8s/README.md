@@ -35,6 +35,12 @@ kubectl get storageclass
 kubectl get ingressclass
 ~~~
 
+## Self-hosted CI on Docker Desktop
+
+The GitHub Actions workflow runs backend and frontend tests on pushes and same-repository pull requests, reusing pip and npm caches. Fork pull requests are skipped because jobs execute on a self-hosted machine. On pushes to `main` (or a manual run on `main`), it builds commit-tagged backend and frontend images using a BuildKit layer cache, loads them into the runner's local Docker image store, applies the local Kubernetes overlay, and waits for the MongoDB, backend, worker and frontend rollouts.
+
+Configure the Windows self-hosted runner with the `self-hosted`, `windows` and `x64` labels. Docker Desktop must be using Linux containers, Kubernetes must be enabled, `kubectl` must be available to the runner, and its current context must be `docker-desktop`. Create the `marketlens-secrets` Secret in the `marketlens-ai` namespace before the first workflow deployment (see the local deployment steps below). The workflow loads images into the local Docker image store; it does not push to an external registry. Confirm that your Docker Desktop Kubernetes provisioner can use those local images. If it has a separate image store, configure a registry accessible to the cluster and adapt the workflow to push there.
+
 ## Local deployment
 
 1. Build the images from the repository root. The backend image is reused by the worker and init containers.
