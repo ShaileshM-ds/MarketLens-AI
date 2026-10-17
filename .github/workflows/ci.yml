@@ -190,14 +190,13 @@ jobs:
           MONGO_USERNAME: ${{ secrets.MARKETLENS_MONGO_USERNAME }}
           MONGO_PASSWORD: ${{ secrets.MARKETLENS_MONGO_PASSWORD }}
         run: |
-          $existingSecret = kubectl -n $env:K8S_NAMESPACE get secret marketlens-secrets 2>&1
-          $getSecretExitCode = $LASTEXITCODE
-          if ($getSecretExitCode -eq 0) {
+          $existingSecret = kubectl -n $env:K8S_NAMESPACE get secret marketlens-secrets --ignore-not-found -o name
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not check for marketlens-secrets."
+          }
+          if ($existingSecret -eq 'secret/marketlens-secrets') {
             Write-Host "Using the existing marketlens-secrets Secret."
             exit 0
-          }
-          if (($existingSecret | Out-String) -notmatch '\(NotFound\)') {
-            throw "Could not check for marketlens-secrets: $existingSecret"
           }
 
           if ([string]::IsNullOrWhiteSpace($env:MONGO_USERNAME) -or
