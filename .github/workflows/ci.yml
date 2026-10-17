@@ -1,24 +1,45 @@
-name: verify-build-deploy
-on: [push, pull_request, workflow_dispatch]
+name: CI-CD Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  K8S_NAMESPACE: marketlens-ai
+
 jobs:
-  full-stack:
+  test-and-build-app:
+    name: Test full-stack application
     runs-on: [self-hosted, windows, x64]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     env:
       MONGO_CONTAINER: marketlens-mongo-${{ github.run_id }}-${{ github.run_attempt }}
       PYTHONPATH: backend
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: backend/requirements.txt
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - name: Start MongoDB
         shell: powershell
         run: |
@@ -39,6 +60,7 @@ jobs:
             "MONGO_URI=mongodb://127.0.0.1:$port`n",
             [System.Text.UTF8Encoding]::new($false)
           )
+
       - name: Wait for MongoDB
         shell: powershell
         run: |
@@ -50,43 +72,111 @@ jobs:
             Start-Sleep -Seconds 2
           }
           throw "MongoDB did not become ready in 60 seconds."
+
       - name: Install backend dependencies
-        run: pip install -r backend/requirements.txt
-      - name: Test backend
-        run: pytest backend/tests -q
+        shell: powershell
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Run backend tests
+        shell: powershell
+        run: python -m pytest backend/tests -q
+
       - name: Install frontend dependencies
         working-directory: frontend
+        shell: powershell
         run: npm ci
-      - name: Test frontend
+
+      - name: Run frontend tests
         working-directory: frontend
+        shell: powershell
         run: npm test
+
       - name: Build frontend
         working-directory: frontend
+        shell: powershell
         run: npm run build
-      - uses: docker/setup-buildx-action@v3
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-      - name: Build and load backend image
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        uses: docker/build-push-action@v6
+
+      - name: Remove MongoDB test container
+        if: always()
+        shell: powershell
+        run: |
+          docker rm --force $env:MONGO_CONTAINER
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Could not remove MongoDB test container '$env:MONGO_CONTAINER'."
+          }
+
+  build-and-save-images:
+    name: Build application images
+    needs: test-and-build-app
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: [self-hosted, windows, x64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and save images
+        shell: powershell
+        run: |
+          $imageDir = Join-Path $env:RUNNER_TEMP "marketlens-images"
+          New-Item -ItemType Directory -Path $imageDir -Force | Out-Null
+          $tag = "sha-$env:GITHUB_SHA"
+
+          docker build --tag "marketlens-ai-backend:$tag" --file backend/Dockerfile .
+          if ($LASTEXITCODE -ne 0) {
+            throw "Backend image build failed."
+          }
+          docker build --tag "marketlens-ai-frontend:$tag" --file frontend/Dockerfile .
+          if ($LASTEXITCODE -ne 0) {
+            throw "Frontend image build failed."
+          }
+
+          docker save --output (Join-Path $imageDir "backend.tar") "marketlens-ai-backend:$tag"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not export the backend image."
+          }
+          docker save --output (Join-Path $imageDir "frontend.tar") "marketlens-ai-frontend:$tag"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not export the frontend image."
+          }
+
+      - name: Upload images for deployment
+        uses: actions/upload-artifact@v4
         with:
-          context: .
-          file: backend/Dockerfile
-          tags: marketlens-ai-backend:sha-${{ github.sha }}
-          load: true
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
-      - name: Build and load frontend image
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        uses: docker/build-push-action@v6
+          name: marketlens-images-${{ github.sha }}
+          path: ${{ runner.temp }}\marketlens-images\*.tar
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy-to-kubernetes:
+    name: Deploy to Docker Desktop Kubernetes
+    needs: build-and-save-images
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: [self-hosted, windows, x64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download built images
+        uses: actions/download-artifact@v4
         with:
-          context: .
-          file: frontend/Dockerfile
-          tags: marketlens-ai-frontend:sha-${{ github.sha }}
-          load: true
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
-      - name: Deploy to Docker Desktop Kubernetes
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+          name: marketlens-images-${{ github.sha }}
+          path: ${{ runner.temp }}\marketlens-images
+
+      - name: Load images into local Docker
+        shell: powershell
+        run: |
+          docker load --input (Join-Path $env:RUNNER_TEMP "marketlens-images\backend.tar")
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not load the backend image into Docker."
+          }
+          docker load --input (Join-Path $env:RUNNER_TEMP "marketlens-images\frontend.tar")
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not load the frontend image into Docker."
+          }
+
+      - name: Verify Kubernetes context and application secret
         shell: powershell
         run: |
           $context = kubectl config current-context
@@ -94,11 +184,19 @@ jobs:
             throw "Expected kubectl context 'docker-desktop', got '$context'."
           }
 
-          kubectl -n marketlens-ai get secret marketlens-secrets
+          kubectl apply -f k8s/base/namespace.yaml
           if ($LASTEXITCODE -ne 0) {
-            throw "Create the marketlens-secrets Secret in namespace marketlens-ai before deploying."
+            throw "Could not create the $env:K8S_NAMESPACE namespace."
           }
 
+          kubectl -n $env:K8S_NAMESPACE get secret marketlens-secrets
+          if ($LASTEXITCODE -ne 0) {
+            throw "Create the marketlens-secrets Secret in namespace $env:K8S_NAMESPACE before deploying."
+          }
+
+      - name: Apply Kubernetes manifests
+        shell: powershell
+        run: |
           $tag = "sha-$env:GITHUB_SHA"
           $rendered = kubectl kustomize k8s
           if ($LASTEXITCODE -ne 0) {
@@ -112,7 +210,11 @@ jobs:
           $manifest = $manifest.Replace('marketlens-ai-backend:k8s-local', "marketlens-ai-backend:$tag")
           $manifest = $manifest.Replace('marketlens-ai-frontend:k8s-local', "marketlens-ai-frontend:$tag")
           $manifestPath = Join-Path $env:RUNNER_TEMP "marketlens-$env:GITHUB_RUN_ID.yaml"
-          Set-Content -Path $manifestPath -Value $manifest -Encoding utf8
+          [System.IO.File]::WriteAllText(
+            $manifestPath,
+            $manifest,
+            [System.Text.UTF8Encoding]::new($false)
+          )
 
           kubectl apply --dry-run=server --filename $manifestPath
           if ($LASTEXITCODE -ne 0) {
@@ -122,27 +224,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Applying the Kubernetes manifests failed."
           }
-          kubectl -n marketlens-ai rollout status statefulset/mongo --timeout=300s
-          if ($LASTEXITCODE -ne 0) {
-            throw "MongoDB rollout did not complete."
-          }
-          kubectl -n marketlens-ai rollout status deployment/backend --timeout=900s
-          if ($LASTEXITCODE -ne 0) {
-            throw "Backend rollout did not complete."
-          }
-          kubectl -n marketlens-ai rollout status deployment/worker --timeout=300s
-          if ($LASTEXITCODE -ne 0) {
-            throw "Worker rollout did not complete."
-          }
-          kubectl -n marketlens-ai rollout status deployment/frontend --timeout=300s
-          if ($LASTEXITCODE -ne 0) {
-            throw "Frontend rollout did not complete."
-          }
-      - name: Remove MongoDB test container
-        if: always()
+
+      - name: Wait for application rollouts
         shell: powershell
         run: |
-          docker rm --force $env:MONGO_CONTAINER
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Could not remove MongoDB test container '$env:MONGO_CONTAINER'."
+          $rollouts = @(
+            @{ Resource = 'statefulset/mongo'; Timeout = '300s' },
+            @{ Resource = 'deployment/backend'; Timeout = '900s' },
+            @{ Resource = 'deployment/worker'; Timeout = '300s' },
+            @{ Resource = 'deployment/frontend'; Timeout = '300s' }
+          )
+          foreach ($rollout in $rollouts) {
+            kubectl -n $env:K8S_NAMESPACE rollout status $rollout.Resource "--timeout=$($rollout.Timeout)"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Rollout failed for $($rollout.Resource)."
+            }
           }
+
+      - name: Deployment snapshot
+        if: always()
+        shell: powershell
+        run: kubectl -n $env:K8S_NAMESPACE get deployments,pods,services,ingress,pvc
