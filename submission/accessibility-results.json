@@ -1,0 +1,10 @@
+{
+  "url": "http://127.0.0.1:8088/",
+  "violations": [],
+  "incomplete": [
+    {
+      "id": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds"
+    }
+  ]
+}

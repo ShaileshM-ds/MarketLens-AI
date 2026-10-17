@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+images:
+- name: marketlens-ai-backend
+  newTag: k8s-local
+- name: marketlens-ai-frontend
+  newTag: k8s-local

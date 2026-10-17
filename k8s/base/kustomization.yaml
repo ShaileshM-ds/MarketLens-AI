@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: marketlens-ai
+resources:
+- namespace.yaml
+- frontend-deployment.yaml
+- frontend-service.yaml
+- backend-deployment.yaml
+- backend-service.yaml
+- worker-deployment.yaml
+- mongo-statefulset.yaml
+- mongo-service.yaml
+- ingress.yaml
+- network-policies.yaml
+- frontend-hpa.yaml
+labels:
+- pairs:
+    app.kubernetes.io/part-of: marketlens-ai
+  includeSelectors: false
+  includeTemplates: true
+configMapGenerator:
+- name: marketlens-config
+  literals:
+  - DB_PREFIX=marketlens
+  - ALLOWED_ORIGINS=http://marketlens.local,http://localhost:8088,http://127.0.0.1:8088
+  - PRODUCTION=0
+  - AUTO_SEED=1
+  - ENABLE_LIVE=0
+  - BATCH_LIMIT=10
+  - DAILY_CAP=50
+  - PYTHONUNBUFFERED=1
+  - PYTHONDONTWRITEBYTECODE=1
+- name: frontend-nginx
+  files:
+  - default.conf=nginx.conf

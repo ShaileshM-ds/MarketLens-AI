@@ -1,0 +1,9 @@
+# Supplied dataset inspection
+
+The project mirror contained `AGENTS.md` and an empty `sources/` directory. The attached implementation prompt was inspected separately. No dataset named `amazon_snapshot reference impana`, or another Amazon snapshot, was available in the workspace. Therefore the original dataset's format, record count, fields, sellers, currency mix, timestamp coverage and anomalies cannot honestly be reported.
+
+The implemented profiler reads actual content rather than trusting extensions. It supports JSON arrays, JSONL and CSV; reports fields, sampled nested paths, missingness, unique products and identified sellers, marketplace/currency distributions, duplicate records, malformed lines, timestamp ranges, repeated product/seller groups and additional-seller field availability. Normalization preview exposes price validation failures and unknown fields. Invalid rows are quarantined with reasons; raw records remain separately stored.
+
+A snapshot can support catalog initialization and current offer inspection. Scoring needs at least 14 prior distinct days and 60% of its selected window. Forecast eligibility requires at least 45 days (and at least four times the requested horizon), adequate coverage and observed backtest targets. Seller analysis requires actual identified offers, not seller counts. Missing observation times exclude records from timed analyses. Import time is never used as a historical observation timestamp.
+
+Synthetic data: deterministic seed 731, 36 products, 7,818 offer observations, maximum 190 days, multiple sellers for two products, intraday captures for the synchronization scenario, one eight-day sparse example and one missing-day example. Scenario labels exist only in this documentation and the generator's scenario design; analytics consume observations, not scenario labels. The actual evaluation is `submission/evaluation.json`.

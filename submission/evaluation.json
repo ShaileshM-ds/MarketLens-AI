@@ -1,0 +1,1320 @@
+{
+  "mode": "demo",
+  "synthetic": true,
+  "seed": 731,
+  "cutoff": "2026-10-14T12:00:00+00:00",
+  "products": 36,
+  "observations": 7818,
+  "results": [
+    {
+      "asin": "DEMO000000",
+      "title": "Auralis Studio Headphones",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 86,
+      "historical_savings": 27.672791709694657,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 10019.166666666666,
+        "scaled_mae": 10.842384769539079,
+        "coverage": 0.6666666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 10019.166666666666,
+          "moving_average": 11154.642857142857,
+          "exponential_smoothing": 10817.010598570325,
+          "seasonal_naive": 10019.166666666666
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000001",
+      "title": "Luma Mechanical Keyboard",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 0,
+      "historical_savings": 0.0,
+      "audit_rules": [
+        "reference-rise"
+      ],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 0.0,
+        "scaled_mae": null,
+        "coverage": 1.0,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 0.0,
+          "moving_average": 0.0,
+          "exponential_smoothing": 0.0,
+          "seasonal_naive": 0.0
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Insufficient evidence"
+    },
+    {
+      "asin": "DEMO000002",
+      "title": "Terra Trail Backpack",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.20036344267945,
+      "audit_rules": [
+        "repeated-urgency"
+      ],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 9376.166666666666,
+        "scaled_mae": 6.633856675988006,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 9376.166666666666,
+          "moving_average": 12909.773809523811,
+          "exponential_smoothing": 11841.59039037535,
+          "seasonal_naive": 9376.166666666666
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000003",
+      "title": "Nimbus Air Purifier",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 23,
+      "historical_savings": 2.025677844948821,
+      "audit_rules": [
+        "shipping-offset"
+      ],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 11264.416666666666,
+        "scaled_mae": 6.474137354299772,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 11264.416666666666,
+          "moving_average": 14305.50000000001,
+          "exponential_smoothing": 13299.433738600923,
+          "seasonal_naive": 11264.416666666666
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Insufficient evidence"
+    },
+    {
+      "asin": "DEMO000004",
+      "title": "Orbit Fitness Watch",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200391901914642,
+      "audit_rules": [
+        "seller-switch"
+      ],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 12833.083333333334,
+        "scaled_mae": 6.633916507573561,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 12833.083333333334,
+          "moving_average": 17669.428571428576,
+          "exponential_smoothing": 16207.416004485742,
+          "seasonal_naive": 12833.083333333334
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000005",
+      "title": "Forma Desk Lamp",
+      "observations": 844,
+      "days": 190,
+      "discount_score": 11,
+      "historical_savings": 0.0,
+      "audit_rules": [],
+      "flagged_pairs": [
+        {
+          "a": "Fictional seller 1",
+          "b": "Fictional seller 2",
+          "score": 100,
+          "adjusted_p": 0.03
+        }
+      ],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "moving_average",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 25478.571428571468,
+        "scaled_mae": 1.7635135135135163,
+        "coverage": 1.0,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 49200.0,
+          "moving_average": 25478.571428571468,
+          "exponential_smoothing": 31863.830934789847,
+          "seasonal_naive": 49200.0
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Insufficient evidence"
+    },
+    {
+      "asin": "DEMO000006",
+      "title": "Echo Portable Speaker",
+      "observations": 760,
+      "days": 190,
+      "discount_score": 7,
+      "historical_savings": -3.8461538461538463,
+      "audit_rules": [
+        "sale-above-baseline"
+      ],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "moving_average",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 19001.904761904803,
+        "scaled_mae": 1.7635135135135174,
+        "coverage": 1.0,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 36693.333333333336,
+          "moving_average": 19001.904761904803,
+          "exponential_smoothing": 23764.027840797226,
+          "seasonal_naive": 36693.333333333336
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Consider waiting"
+    },
+    {
+      "asin": "DEMO000007",
+      "title": "Atlas Coffee Maker",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 3,
+      "historical_savings": -15.0,
+      "audit_rules": [
+        "sale-above-baseline"
+      ],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "exponential_smoothing",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 53620.86303425853,
+        "scaled_mae": 2.7401521480494213,
+        "coverage": 0.6666666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 76100.0,
+          "moving_average": 56531.42857142856,
+          "exponential_smoothing": 53620.86303425853,
+          "seasonal_naive": 76100.0
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Consider waiting"
+    },
+    {
+      "asin": "DEMO000008",
+      "title": "Prism 27-inch Monitor",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 3,
+      "historical_savings": -15.0,
+      "audit_rules": [
+        "sale-above-baseline"
+      ],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "exponential_smoothing",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 58514.98060976487,
+        "scaled_mae": 3.788739751711394,
+        "coverage": 0.8333333333333334,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 83400.0,
+          "moving_average": 59571.42857142856,
+          "exponential_smoothing": 58514.98060976487,
+          "seasonal_naive": 83400.0
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Consider waiting"
+    },
+    {
+      "asin": "DEMO000009",
+      "title": "Solace Reading Light",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 5,
+      "historical_savings": 0.0,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 0.0,
+        "scaled_mae": null,
+        "coverage": 1.0,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 0.0,
+          "moving_average": 0.0,
+          "exponential_smoothing": 0.0,
+          "seasonal_naive": 0.0
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Insufficient evidence"
+    },
+    {
+      "asin": "DEMO000010",
+      "title": "Cobalt USB-C Hub",
+      "observations": 8,
+      "days": 8,
+      "discount_score": null,
+      "historical_savings": null,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 0,
+      "forecast": {
+        "status": "insufficient history"
+      },
+      "recommendation": "Insufficient evidence"
+    },
+    {
+      "asin": "DEMO000011",
+      "title": "Moss Travel Bottle",
+      "observations": 126,
+      "days": 126,
+      "discount_score": 41,
+      "historical_savings": 5.059065143706224,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 0,
+      "forecast": {
+        "status": "insufficient history"
+      },
+      "recommendation": "Insufficient evidence"
+    },
+    {
+      "asin": "DEMO000012",
+      "title": "Auralis Studio Headphones 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200176653682092,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 26660.25,
+        "scaled_mae": 6.633815124789187,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 26660.25,
+          "moving_average": 36707.80952380956,
+          "exponential_smoothing": 33670.46154374466,
+          "seasonal_naive": 26660.25
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000013",
+      "title": "Luma Mechanical Keyboard 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200255470026354,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 28388.75,
+        "scaled_mae": 6.633836813368876,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 28388.75,
+          "moving_average": 39087.64285714284,
+          "exponential_smoothing": 35853.39826944581,
+          "seasonal_naive": 28388.75
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000014",
+      "title": "Terra Trail Backpack 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200210219852979,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 30116.916666666668,
+        "scaled_mae": 6.633805783852576,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 30116.916666666668,
+          "moving_average": 41467.380952380925,
+          "exponential_smoothing": 38036.187518105515,
+          "seasonal_naive": 30116.916666666668
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000015",
+      "title": "Nimbus Air Purifier 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200243678976932,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 31845.583333333332,
+        "scaled_mae": 6.633845720602806,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 31845.583333333332,
+          "moving_average": 43847.39285714286,
+          "exponential_smoothing": 40219.32963087212,
+          "seasonal_naive": 31845.583333333332
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000016",
+      "title": "Orbit Fitness Watch 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200236873936027,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 33574.0,
+        "scaled_mae": 6.6338529540600355,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 33574.0,
+          "moving_average": 46227.119047619075,
+          "exponential_smoothing": 42402.12792123101,
+          "seasonal_naive": 33574.0
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000017",
+      "title": "Forma Desk Lamp 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200234197104357,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 35302.5,
+        "scaled_mae": 6.633881734627728,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 35302.5,
+          "moving_average": 48606.9523809524,
+          "exponential_smoothing": 44585.03303954585,
+          "seasonal_naive": 35302.5
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000018",
+      "title": "Echo Portable Speaker 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200198388080976,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 37030.916666666664,
+        "scaled_mae": 6.633861460183617,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 37030.916666666664,
+          "moving_average": 50986.84523809521,
+          "exponential_smoothing": 46768.00517325996,
+          "seasonal_naive": 37030.916666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000019",
+      "title": "Atlas Coffee Maker 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.2002551468974305,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 38759.083333333336,
+        "scaled_mae": 6.633806212831544,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 38759.083333333336,
+          "moving_average": 53366.44047619047,
+          "exponential_smoothing": 48950.6756438338,
+          "seasonal_naive": 38759.083333333336
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000020",
+      "title": "Prism 27-inch Monitor 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200221500912472,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 40487.5,
+        "scaled_mae": 6.633825399673863,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 40487.5,
+          "moving_average": 55746.238095238106,
+          "exponential_smoothing": 51133.607650505226,
+          "seasonal_naive": 40487.5
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000021",
+      "title": "Solace Reading Light 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200246278818351,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 42215.916666666664,
+        "scaled_mae": 6.633837499916856,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 42215.916666666664,
+          "moving_average": 58126.22619047619,
+          "exponential_smoothing": 53316.62148944265,
+          "seasonal_naive": 42215.916666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000022",
+      "title": "Cobalt USB-C Hub 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200240977450746,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 43944.5,
+        "scaled_mae": 6.6338473150744015,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 43944.5,
+          "moving_average": 60505.833333333336,
+          "exponential_smoothing": 55499.35451625212,
+          "seasonal_naive": 43944.5
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000023",
+      "title": "Moss Travel Bottle 2",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200211687528831,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 45672.75,
+        "scaled_mae": 6.633797775656721,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 45672.75,
+          "moving_average": 62885.8214285714,
+          "exponential_smoothing": 57682.3725738475,
+          "seasonal_naive": 45672.75
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000024",
+      "title": "Auralis Studio Headphones 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200210612322605,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 47401.25,
+        "scaled_mae": 6.6338408708047165,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 47401.25,
+          "moving_average": 65265.690476190495,
+          "exponential_smoothing": 59865.34088801899,
+          "seasonal_naive": 47401.25
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000025",
+      "title": "Luma Mechanical Keyboard 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.20020712525218,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 49129.666666666664,
+        "scaled_mae": 6.633836505755798,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 49129.666666666664,
+          "moving_average": 67645.34523809516,
+          "exponential_smoothing": 62048.11653608786,
+          "seasonal_naive": 49129.666666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000026",
+      "title": "Terra Trail Backpack 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200228181316811,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 50858.166666666664,
+        "scaled_mae": 6.6338295722604945,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 50858.166666666664,
+          "moving_average": 70025.34523809527,
+          "exponential_smoothing": 64231.1567686034,
+          "seasonal_naive": 50858.166666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000027",
+      "title": "Nimbus Air Purifier 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.20020316278787,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 52586.416666666664,
+        "scaled_mae": 6.633822551771919,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 52586.416666666664,
+          "moving_average": 72405.05952380954,
+          "exponential_smoothing": 66414.01048923629,
+          "seasonal_naive": 52586.416666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000028",
+      "title": "Orbit Fitness Watch 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200243513974145,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 54314.916666666664,
+        "scaled_mae": 6.633842225291076,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 54314.916666666664,
+          "moving_average": 74784.77380952374,
+          "exponential_smoothing": 68596.7907320729,
+          "seasonal_naive": 54314.916666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000029",
+      "title": "Forma Desk Lamp 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.2002195657579735,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 56043.416666666664,
+        "scaled_mae": 6.633839911617324,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 56043.416666666664,
+          "moving_average": 77164.67857142857,
+          "exponential_smoothing": 70779.79869392472,
+          "seasonal_naive": 56043.416666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000030",
+      "title": "Echo Portable Speaker 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200237729802425,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 57771.916666666664,
+        "scaled_mae": 6.6338498276968245,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 57771.916666666664,
+          "moving_average": 79544.66666666663,
+          "exponential_smoothing": 72962.8464095671,
+          "seasonal_naive": 57771.916666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000031",
+      "title": "Atlas Coffee Maker 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200215340949262,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 59500.166666666664,
+        "scaled_mae": 6.633827381163061,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 59500.166666666664,
+          "moving_average": 81924.25,
+          "exponential_smoothing": 75145.53317565397,
+          "seasonal_naive": 59500.166666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000032",
+      "title": "Prism 27-inch Monitor 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200232598753716,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 61228.666666666664,
+        "scaled_mae": 6.633844696893696,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 61228.666666666664,
+          "moving_average": 84304.16666666667,
+          "exponential_smoothing": 77328.55275840433,
+          "seasonal_naive": 61228.666666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000033",
+      "title": "Solace Reading Light 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.2002292739366265,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 62957.083333333336,
+        "scaled_mae": 6.633833788546036,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 62957.083333333336,
+          "moving_average": 86683.78571428564,
+          "exponential_smoothing": 79511.25762144453,
+          "seasonal_naive": 62957.083333333336
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000034",
+      "title": "Cobalt USB-C Hub 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200245237176139,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 64685.416666666664,
+        "scaled_mae": 6.633832915153659,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 64685.416666666664,
+          "moving_average": 89063.55952380958,
+          "exponential_smoothing": 81694.08686544634,
+          "seasonal_naive": 64685.416666666664
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    },
+    {
+      "asin": "DEMO000035",
+      "title": "Moss Travel Bottle 3",
+      "observations": 190,
+      "days": 190,
+      "discount_score": 41,
+      "historical_savings": 5.200224983620746,
+      "audit_rules": [],
+      "flagged_pairs": [],
+      "analog_count": 8,
+      "forecast": {
+        "status": "ready",
+        "model": "last",
+        "version": "forecast-1",
+        "horizon": 7,
+        "training_cutoff": "2026-10-14T12:00:00+00:00",
+        "created_at": "2026-10-14T12:00:00+00:00",
+        "mae": 66413.66666666667,
+        "scaled_mae": 6.6338062335306756,
+        "coverage": 0.9166666666666666,
+        "test_samples": 12,
+        "calibration_samples": 11,
+        "backtest_range": [
+          "2026-05-06",
+          "2026-10-07"
+        ],
+        "baselines": {
+          "last": 66413.66666666667,
+          "moving_average": 91443.5119047619,
+          "exponential_smoothing": 83877.11479035881,
+          "seasonal_naive": 66413.66666666667
+        },
+        "interval_method": "90th percentile absolute residual on early rolling origins; measured coverage on later origins. Horizon-end interval reused across path; not individually calibrated daily.",
+        "warning": "Prediction, not a guarantee. Missing target dates are skipped, never fabricated."
+      },
+      "recommendation": "Buy now"
+    }
+  ],
+  "limitation": "Deterministic scenario evaluation is not real-world effectiveness. Provider live collection was not executed."
+}

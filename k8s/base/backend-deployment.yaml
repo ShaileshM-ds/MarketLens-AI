@@ -1,0 +1,144 @@
+# One backend avoids concurrent automatic demo seeding on an empty database.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: marketlens-ai
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: marketlens-ai
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: marketlens-ai
+        app.kubernetes.io/component: backend
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 45
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      initContainers:
+      - name: wait-for-mongo
+        image: marketlens-ai-backend:k8s-local
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: marketlens-config
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: mongo-uri
+        - name: BRIGHT_DATA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-api-key
+              optional: true
+        - name: BRIGHT_DATA_DATASET_ID
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-dataset-id
+              optional: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        command:
+        - python
+        - -c
+        - import os; from pymongo import MongoClient; MongoClient(os.environ['MONGO_URI'],serverSelectionTimeoutMS=3000).admin.command('ping')
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+      containers:
+      - name: backend
+        image: marketlens-ai-backend:k8s-local
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: marketlens-config
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: mongo-uri
+        - name: BRIGHT_DATA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-api-key
+              optional: true
+        - name: BRIGHT_DATA_DATASET_ID
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-dataset-id
+              optional: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        ports:
+        - name: http
+          containerPort: 8000
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 1Gi
+        startupProbe:
+          httpGet:
+            path: /api/v1/health
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 120
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ready
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: http
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3

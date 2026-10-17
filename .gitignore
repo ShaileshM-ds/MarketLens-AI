@@ -1,0 +1,26 @@
+.env
+.runtime/
+.venv/
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+test-results/
+playwright-report/
+data/generated/
+*.log
+
+# Local Kubernetes credentials and rendered output
+k8s/secret.local.yaml
+k8s/*.rendered.yaml
+
+# Additional local credentials and build caches
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.tsbuildinfo
+.DS_Store
+Thumbs.db

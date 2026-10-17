@@ -1,0 +1,54 @@
+name: marketlens-ai
+services:
+  mongo:
+    image: mongo:8.0
+    volumes: [mongo-data:/data/db]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: &backend-env
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
+      DB_PREFIX: ${DB_PREFIX:-marketlens}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088}
+      PRODUCTION: ${PRODUCTION:-0}
+      AUTO_SEED: "1"
+      ENABLE_LIVE: ${ENABLE_LIVE:-0}
+      BRIGHT_DATA_API_KEY: ${BRIGHT_DATA_API_KEY:-}
+      BRIGHT_DATA_DATASET_ID: ${BRIGHT_DATA_DATASET_ID:-}
+      BATCH_LIMIT: ${BATCH_LIMIT:-10}
+      DAILY_CAP: ${DAILY_CAP:-50}
+    depends_on:
+      mongo: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/ready')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 180s
+      retries: 10
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment: *backend-env
+    command: [python, -m, app.workers.main]
+    depends_on:
+      backend: {condition: service_healthy}
+    restart: unless-stopped
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports: ["127.0.0.1:8088:80"]
+    depends_on:
+      backend: {condition: service_healthy}
+    restart: unless-stopped
+volumes:
+  mongo-data:

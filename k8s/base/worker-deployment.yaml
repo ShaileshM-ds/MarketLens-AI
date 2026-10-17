@@ -1,0 +1,133 @@
+# The polling worker has no inbound endpoint and therefore needs no Service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app.kubernetes.io/name: marketlens-ai
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: marketlens-ai
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: marketlens-ai
+        app.kubernetes.io/component: worker
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 45
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      initContainers:
+      - name: wait-for-backend
+        image: marketlens-ai-backend:k8s-local
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: marketlens-config
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: mongo-uri
+        - name: BRIGHT_DATA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-api-key
+              optional: true
+        - name: BRIGHT_DATA_DATASET_ID
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-dataset-id
+              optional: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        command:
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://backend:8000/api/v1/ready',timeout=5)
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+      containers:
+      - name: worker
+        image: marketlens-ai-backend:k8s-local
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: marketlens-config
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: mongo-uri
+        - name: BRIGHT_DATA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-api-key
+              optional: true
+        - name: BRIGHT_DATA_DATASET_ID
+          valueFrom:
+            secretKeyRef:
+              name: marketlens-secrets
+              key: bright-data-dataset-id
+              optional: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        command:
+        - python
+        - -m
+        - app.workers.main
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - import os; from pymongo import MongoClient; MongoClient(os.environ['MONGO_URI'],serverSelectionTimeoutMS=3000).admin.command('ping')
+          periodSeconds: 30
+          timeoutSeconds: 5

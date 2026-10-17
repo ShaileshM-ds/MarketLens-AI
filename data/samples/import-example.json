@@ -1,0 +1,4 @@
+[
+  {"asin":"EXAMPLE001","title":"Example imported product","marketplace":"amazon.in","currency":"INR","price":"2499.00","shipping":"0","tax_treatment":"included","seller_id":"example-seller","condition":"new","variant":{"capacity":"128GB"},"observed_at":"2026-10-14T10:00:00+00:00","source_id":"user-supplied-example","buy_box":true},
+  {"asin":"EXAMPLE002","title":"Snapshot without collection time","marketplace":"amazon.in","currency":"INR","price":"1299.00","condition":"new","source_id":"user-supplied-example"}
+]

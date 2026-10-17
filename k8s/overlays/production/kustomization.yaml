@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+- backend-hpa.yaml
+images:
+- name: marketlens-ai-backend
+  newName: registry.example.com/marketlens/backend
+  newTag: replace-with-version
+- name: marketlens-ai-frontend
+  newName: registry.example.com/marketlens/frontend
+  newTag: replace-with-version
+configMapGenerator:
+- name: marketlens-config
+  behavior: merge
+  literals:
+  - PRODUCTION=1
+  - AUTO_SEED=0
+  - ALLOWED_ORIGINS=https://marketlens.example.com
+patches:
+- path: ingress.yaml
+- path: frontend-hpa.yaml
+- path: backend-scaling.yaml

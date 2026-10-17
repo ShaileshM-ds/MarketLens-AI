@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  labels:
+    app.kubernetes.io/name: marketlens-ai
+    app.kubernetes.io/component: mongo
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: marketlens-ai
+    app.kubernetes.io/component: mongo
+  ports:
+  - name: mongo
+    port: 27017
+    targetPort: mongo
+  clusterIP: None
