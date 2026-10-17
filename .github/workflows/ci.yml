@@ -171,7 +171,7 @@ jobs:
             throw "Could not load the frontend image into Docker."
           }
 
-      - name: Verify Kubernetes context and application secret
+      - name: Verify Kubernetes context
         shell: powershell
         run: |
           $context = kubectl config current-context
@@ -184,9 +184,60 @@ jobs:
             throw "Could not create the $env:K8S_NAMESPACE namespace."
           }
 
-          kubectl -n $env:K8S_NAMESPACE get secret marketlens-secrets
-          if ($LASTEXITCODE -ne 0) {
-            throw "Create the marketlens-secrets Secret in namespace $env:K8S_NAMESPACE before deploying."
+      - name: Create MongoDB credentials Secret if missing
+        shell: powershell
+        env:
+          MONGO_USERNAME: ${{ secrets.MARKETLENS_MONGO_USERNAME }}
+          MONGO_PASSWORD: ${{ secrets.MARKETLENS_MONGO_PASSWORD }}
+        run: |
+          $existingSecret = kubectl -n $env:K8S_NAMESPACE get secret marketlens-secrets 2>&1
+          $getSecretExitCode = $LASTEXITCODE
+          if ($getSecretExitCode -eq 0) {
+            Write-Host "Using the existing marketlens-secrets Secret."
+            exit 0
+          }
+          if (($existingSecret | Out-String) -notmatch '\(NotFound\)') {
+            throw "Could not check for marketlens-secrets: $existingSecret"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:MONGO_USERNAME) -or
+              [string]::IsNullOrWhiteSpace($env:MONGO_PASSWORD)) {
+            throw "The marketlens-secrets Secret is missing. Add GitHub Actions secrets MARKETLENS_MONGO_USERNAME and MARKETLENS_MONGO_PASSWORD, or create the Kubernetes Secret manually."
+          }
+
+          $username = [Uri]::EscapeDataString($env:MONGO_USERNAME)
+          $password = [Uri]::EscapeDataString($env:MONGO_PASSWORD)
+          $secret = @{
+            apiVersion = 'v1'
+            kind = 'Secret'
+            metadata = @{
+              name = 'marketlens-secrets'
+              namespace = $env:K8S_NAMESPACE
+            }
+            type = 'Opaque'
+            stringData = @{
+              'mongo-username' = $env:MONGO_USERNAME
+              'mongo-password' = $env:MONGO_PASSWORD
+              'mongo-uri' = "mongodb://${username}:${password}@mongo:27017/?authSource=admin"
+              'bright-data-api-key' = ''
+              'bright-data-dataset-id' = ''
+            }
+          }
+          $secretPath = Join-Path $env:RUNNER_TEMP "marketlens-secret-$env:GITHUB_RUN_ID.json"
+          try {
+            $secretJson = $secret | ConvertTo-Json -Depth 8
+            [System.IO.File]::WriteAllText(
+              $secretPath,
+              $secretJson,
+              [System.Text.UTF8Encoding]::new($false)
+            )
+            kubectl apply --filename $secretPath
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not create the marketlens-secrets Secret."
+            }
+          }
+          finally {
+            Remove-Item -LiteralPath $secretPath -Force -ErrorAction SilentlyContinue
           }
 
       - name: Apply Kubernetes manifests
