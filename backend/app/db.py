@@ -6,15 +6,45 @@ client = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017'), server
 PREFIX = os.getenv('DB_PREFIX', 'marketlens')
 MODES = ('demo', 'imported', 'live')
 
+def review_mode_enabled():
+    return os.getenv('REVIEW_MODE', '').strip().lower() in {
+        '1', 'true', 'yes', 'on'
+    }
+
+def active_modes():
+    configured = os.getenv('ACTIVE_MODES')
+    if configured is None:
+        return ('imported',) if review_mode_enabled() else MODES
+
+    modes = tuple(
+        mode.strip()
+        for mode in configured.split(',')
+        if mode.strip()
+    )
+    if not modes or any(mode not in MODES for mode in modes):
+        raise RuntimeError('ACTIVE_MODES must contain valid data modes')
+    if len(set(modes)) != len(modes):
+        raise RuntimeError('ACTIVE_MODES must not contain duplicates')
+    if review_mode_enabled() and modes != ('imported',):
+        raise RuntimeError(
+            'REVIEW_MODE requires ACTIVE_MODES=imported'
+        )
+    return modes
+
 def now():
     return datetime.now(timezone.utc).isoformat()
 
 def database(mode):
     if mode not in MODES:
         raise ValueError('Unknown data mode')
+    if mode not in active_modes():
+        raise ValueError('Data mode is not active')
     return client[f'{PREFIX}_{mode}']
 
 def indexes(db):
+    if review_mode_enabled():
+        raise RuntimeError('Database index initialization is disabled in review mode')
+
     db.products.create_index('id', unique=True)
     db.sellers.create_index('id', unique=True)
     db.raw.create_index('id', unique=True)
@@ -33,6 +63,16 @@ def indexes(db):
     db.users.create_index('username', unique=True)
     db.sessions.create_index('token', unique=True)
     db.sessions.create_index('expires', expireAfterSeconds=0)
+    db.product_summaries.create_index('id', unique=True)
+    db.product_summaries.create_index([('current', 1)])
+    db.product_summaries.create_index([('days', -1)])
+    db.product_summaries.create_index([('category', 1)])
+    db.product_summaries.create_index([('brand', 1)])
+    db.product_summaries.create_index([('marketplace', 1)])
+    db.product_summaries.create_index([('currency', 1)])
+    db.product_summaries.create_index([('discount.score', -1)])
+    db.product_summaries.create_index([('quality.distinct_days', -1)])
+    db.product_summaries.create_index([('title', 1)])
 
 def clean(value):
     if isinstance(value, list): return [clean(x) for x in value]

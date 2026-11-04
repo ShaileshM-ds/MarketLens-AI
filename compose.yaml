@@ -2,8 +2,16 @@ name: marketlens-ai
 services:
   mongo:
     image: mongo:8.0
+    command: ["mongod", "--wiredTigerCacheSizeGB", "1.0"]
+    ports:
+    - "27018:27017"
     volumes: [mongo-data:/data/db]
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
     healthcheck:
       test: [CMD, mongosh, --quiet, --eval, "db.adminCommand('ping').ok"]
       interval: 10s
@@ -18,7 +26,7 @@ services:
       DB_PREFIX: ${DB_PREFIX:-marketlens}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088}
       PRODUCTION: ${PRODUCTION:-0}
-      AUTO_SEED: "1"
+      AUTO_SEED: "0"
       ENABLE_LIVE: ${ENABLE_LIVE:-0}
       BRIGHT_DATA_API_KEY: ${BRIGHT_DATA_API_KEY:-}
       BRIGHT_DATA_DATASET_ID: ${BRIGHT_DATA_DATASET_ID:-}
@@ -27,6 +35,11 @@ services:
     depends_on:
       mongo: {condition: service_healthy}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/ready')"]
       interval: 15s
@@ -42,6 +55,11 @@ services:
     depends_on:
       backend: {condition: service_healthy}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
   frontend:
     build:
       context: .
@@ -50,5 +68,10 @@ services:
     depends_on:
       backend: {condition: service_healthy}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
 volumes:
   mongo-data:

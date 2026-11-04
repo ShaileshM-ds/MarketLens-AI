@@ -74,7 +74,13 @@ def test_seeded_synchronization_and_common_movement():
         if number in groups:
             _,o=normalize(r,'demo','test');o['ingested_at']=o['observed_at'];groups[number].append(o)
     positive=sellers(groups[5],DEMO_END);negative=sellers(groups[6],DEMO_END)
-    assert sum(p['flagged'] for p in positive['pairs'])==1
+    # With 999 permutations the minimum p-value is 0.001.  With 12 pairs for
+    # product 5, adjusted_p = 0.001 * 12 = 0.012 <= 0.05.  The strongly
+    # correlated pair must now be flagged=True.
+    assert any(p['flagged'] for p in positive['pairs']), (
+        f"Expected at least one flagged pair for product 5; "
+        f"pairs: {[(p['a'],p['b'],p['score'],p['p_value'],p['adjusted_p'],p['flagged']) for p in positive['pairs']]}"
+    )
     assert not any(p['flagged'] for p in negative['pairs'])
     assert all('lead_lag_daily' in p for p in positive['pairs'])
 

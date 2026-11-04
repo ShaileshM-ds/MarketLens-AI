@@ -1,8 +1,12 @@
 from datetime import timedelta
 from pymongo.errors import DuplicateKeyError
 from app.analytics.engine import analyze,dt,value,eligible,comparable
+from app.db import review_mode_enabled
 
 def evaluate(db,cutoff):
+    if review_mode_enabled():
+        raise RuntimeError('Alert processing is disabled in review mode')
+
     delivered=0
     for w in db.watchlists.find({'paused':False}):
         rows=list(db.observations.find({'product_id':w['product_id']})); rs=comparable(eligible(rows,cutoff))

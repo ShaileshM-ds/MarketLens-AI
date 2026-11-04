@@ -61,7 +61,7 @@ def audits(rows,cutoff):
     rs=comparable(eligible(rows,cutoff)); findings=[]
     def add(rule, evidence, explanation, alternative):
         findings.append(dict(id=rule+evidence[-1]['key'][:12],rule=rule,version=VERSION,severity='review',confidence='observed pattern',
-            explanation=explanation,alternative=alternative,evidence=[{'key':r['key'],'observed_at':r['observed_at'],'raw_ref':r.get('raw_ref')} for r in evidence]))
+            explanation=explanation,alternative=alternative,synthetic_evidence=any(r.get('synthetic') is True for r in evidence),evidence=[{'key':r['key'],'observed_at':r['observed_at'],'raw_ref':r.get('raw_ref')} for r in evidence]))
     for a,b in zip(rs,rs[1:]):
         if a.get('reference_price') and b.get('reference_price') and b['reference_price']>a['reference_price']*1.1 and b['reference_price']>b['price']:
             add('reference-rise',[a,b],'Reference price increased by over 10% while a discount is implied.','Reference may reflect a revised manufacturer list price.')
@@ -83,48 +83,327 @@ def audits(rows,cutoff):
         add('sale-above-baseline',[rs[-1]],'Advertised discount accompanies a price above the historical median.','Reference and historical baseline measure different things.')
     return {'findings':findings[-100:],'unsupported':[f for f in ['countdown','urgency','shipping'] if not any(r.get(f) is not None for r in rs)],'disclaimer':'Evidence for investigation; no finding proves deception.'}
 
-def sellers(rows,cutoff):
-    rs=eligible(rows,cutoff); grouped=defaultdict(dict)
+def _seller_daily_tracks(rows, cutoff):
+    """
+    Build per-seller daily price tracks from eligible observations.
+
+    Internal grouping key is (seller_id, currency, region) so that
+    observations from different currencies or regions are never combined
+    into the same daily median.  The returned dicts use the same compound
+    key; callers that need plain seller IDs must extract the first element.
+
+    Returns:
+      item_track    – {(seller_id, currency, region): {date: median_price}}
+                      populated whenever a valid price exists.
+      landed_track  – same shape, populated only when total is not None.
+      rep           – {(seller_id, currency, region): {date: row}}
+                      one representative row per slot, used by _seller_pairs
+                      for metadata checks.  Because eligible() sorts rows by
+                      observed_at ascending, the representative is the latest
+                      intraday observation for that slot — a stable, documented
+                      choice.  It is used only for metadata validation, never
+                      for price values.
+
+    Deduplication: if a row carries a non-empty 'key' field, it is counted
+    at most once per (seller_id, currency, region, date) slot.  Rows without
+    a key are always included (they are distinct by construction in tests and
+    in the normalised schema where every stored observation has a unique key).
+    """
+    rs = eligible(rows, cutoff)
+
+    # (seller_id, currency, region) -> date -> [price, ...]
+    item_raw   = defaultdict(lambda: defaultdict(list))
+    landed_raw = defaultdict(lambda: defaultdict(list))
+    # (seller_id, currency, region) -> date -> representative row
+    rep = defaultdict(dict)
+    # deduplication: (slot_key, date) -> set of observation keys already seen
+    seen_keys: dict = {}
+
     for r in rs:
-        if r.get('seller_id') and r.get('total') is not None:
-            grouped[r['seller_id']][r['observed_at'][:10]]=r
-    pairs=[]
-    for a,b in combinations(sorted(grouped),2):
-        dates=sorted(set(grouped[a])&set(grouped[b])); changes=[]
-        for d0,d1 in zip(dates,dates[1:]):
-            if (datetime.fromisoformat(d1)-datetime.fromisoformat(d0)).days!=1: continue
-            aa,ab,ba,bb=grouped[a][d0],grouped[a][d1],grouped[b][d0],grouped[b][d1]
-            if len({(r['currency'],r.get('region')) for r in (aa,ab,ba,bb)})!=1: continue
-            changes.append((d1,(value(ab)-value(aa))/value(aa),(value(bb)-value(ba))/value(ba)))
-        if len(changes)<20: continue
-        x=np.array([c[1] for c in changes]); y=np.array([c[2] for c in changes]); active=(abs(x)>.002)|(abs(y)>.002)
-        if sum(active)<5 or np.std(x)<1e-7 or np.std(y)<1e-7: continue
-        corr=float(np.corrcoef(x,y)[0,1]); same=float(np.mean((np.sign(x[active])==np.sign(y[active]))))
-        rng=np.random.default_rng(42); null=[float(np.corrcoef(x,rng.permutation(y))[0,1]) for _ in range(199)]
-        p=(1+sum(c>=corr for c in null))/200
+        sid = r.get('seller_id')
+        if not sid:
+            continue
+        p = r.get('price')
+        if p is None or p <= 0:
+            continue
+
+        currency = r.get('currency') or ''
+        region   = r.get('region')   or ''
+        date     = r['observed_at'][:10]
+        slot     = (sid, currency, region)
+
+        # Skip exact duplicate observations (same observation key, same slot, same day).
+        # Rows without a key are always included — they are distinct by construction.
+        obs_key = r.get('key')
+        if obs_key:
+            dedup_slot = (slot, date)
+            if dedup_slot not in seen_keys:
+                seen_keys[dedup_slot] = set()
+            if obs_key in seen_keys[dedup_slot]:
+                continue
+            seen_keys[dedup_slot].add(obs_key)
+
+        item_raw[slot][date].append(p)
+        # eligible() sorts ascending by observed_at, so this is the latest
+        # intraday row for this slot — used only for metadata validation.
+        rep[slot][date] = r
+
+        t = r.get('total')
+        if t is not None:
+            landed_raw[slot][date].append(t)
+
+    def _median_track(raw_dict):
+        return {
+            slot: {
+                date: float(np.median(vals))
+                for date, vals in daily_map.items()
+            }
+            for slot, daily_map in raw_dict.items()
+        }
+
+    return _median_track(item_raw), _median_track(landed_raw), rep
+
+
+def _seller_pairs(grouped, rep, price_basis):
+    """
+    Compute cross-seller price-change correlation pairs for one track.
+
+    ``grouped`` maps (seller_id, currency, region) -> {date: median_price}.
+    ``rep``     maps (seller_id, currency, region) -> {date: representative_row}.
+    ``price_basis`` is the string label included in each pair dict.
+
+    Because the grouping key already encodes currency and region, two slots
+    with different currencies or regions are never combined.  Additionally,
+    slots whose currency is the empty string (unknown) are never paired with
+    any other slot — matching two unknowns is not evidence of a shared currency.
+    The per-interval representative check below is kept as defence-in-depth.
+
+    The 'a' and 'b' fields in each returned pair dict contain plain seller IDs
+    (the first element of the compound key) for frontend compatibility.
+
+    Lead-lag note: ``changes`` is built exclusively from consecutive-day
+    intervals (the inner loop skips any gap > 1 day).  Therefore the guard
+    ``all(...days == 1 ...)`` over ``changes`` is always True when
+    len(changes) >= 2.  It is retained as an explicit, documented invariant
+    check rather than removed, so that any future change to the construction
+    of ``changes`` does not silently break lead-lag computation.
+    """
+    pairs = []
+    for slot_a, slot_b in combinations(sorted(grouped), 2):
+        # Only compare slots that share the same currency and region.
+        # Empty-string currency means the source did not record a currency;
+        # two unknown currencies must not be treated as the same currency.
+        sid_a, cur_a, reg_a = slot_a
+        sid_b, cur_b, reg_b = slot_b
+        if not cur_a or not cur_b or cur_a != cur_b or reg_a != reg_b:
+            continue
+
+        dates = sorted(set(grouped[slot_a]) & set(grouped[slot_b]))
+        changes = []
+        for d0, d1 in zip(dates, dates[1:]):
+            if (datetime.fromisoformat(d1) - datetime.fromisoformat(d0)).days != 1:
+                continue
+            # Defence-in-depth: verify representative metadata is consistent
+            # within each slot across both days.
+            reps = [
+                rep[slot_a].get(d0), rep[slot_a].get(d1),
+                rep[slot_b].get(d0), rep[slot_b].get(d1),
+            ]
+            if any(r is None for r in reps):
+                continue
+            if len({(r.get('currency') or '', r.get('region') or '') for r in reps}) != 1:
+                continue
+            pa0, pa1 = grouped[slot_a][d0], grouped[slot_a][d1]
+            pb0, pb1 = grouped[slot_b][d0], grouped[slot_b][d1]
+            changes.append((d1, (pa1 - pa0) / pa0, (pb1 - pb0) / pb0))
+        if len(changes) < 20:
+            continue
+        x = np.array([c[1] for c in changes])
+        y = np.array([c[2] for c in changes])
+        active = (abs(x) > .002) | (abs(y) > .002)
+        if sum(active) < 5 or np.std(x) < 1e-7 or np.std(y) < 1e-7:
+            continue
+        corr = float(np.corrcoef(x, y)[0, 1])
+        same = float(np.mean(np.sign(x[active]) == np.sign(y[active])))
+        rng = np.random.default_rng(42)
+        null = [float(np.corrcoef(x, rng.permutation(y))[0, 1]) for _ in range(999)]
+        p = (1 + sum(c >= corr for c in null)) / 1000
         # Product median changes supply a limited common-movement explanation.
-        common=[]
-        for day,dx,dy in changes:
-            prior=(datetime.fromisoformat(day)-timedelta(days=1)).date().isoformat()
-            other=[(value(g[day])-value(g[prior]))/value(g[prior]) for s,g in grouped.items() if s not in (a,b) and day in g and prior in g]
+        common = []
+        for day, dx, dy in changes:
+            prior = (datetime.fromisoformat(day) - timedelta(days=1)).date().isoformat()
+            other = [
+                (grouped[s][day] - grouped[s][prior]) / grouped[s][prior]
+                for s in grouped
+                if s not in (slot_a, slot_b) and day in grouped[s] and prior in grouped[s]
+            ]
             common.append(float(np.median(other)) if other else 0)
-        common=np.array(common); common_corr=float(np.corrcoef(x,common)[0,1]) if np.std(common)>1e-7 else 0
-        score=max(0,corr)*same*100*(.3 if common_corr>.8 else 1)
-        half=len(x)//2
-        stability=[float(np.corrcoef(xx,yy)[0,1]) if np.std(xx)>1e-7 and np.std(yy)>1e-7 else None for xx,yy in [(x[:half],y[:half]),(x[half:],y[half:])]]
-        magnitude=float(np.mean(1-np.minimum(1,abs(x[active]-y[active])/np.maximum(np.maximum(abs(x[active]),abs(y[active])),1e-9))))
-        lead_lag={}
-        if all((datetime.fromisoformat(b[0])-datetime.fromisoformat(a[0])).days==1 for a,b in zip(changes,changes[1:])):
-            for lag in [-1,0,1]:
-                xx,yy=(x[:-1],y[1:]) if lag==1 else (x[1:],y[:-1]) if lag==-1 else (x,y)
-                lead_lag[str(lag)]=float(np.corrcoef(xx,yy)[0,1]) if np.std(xx)>1e-7 and np.std(yy)>1e-7 else None
-        pairs.append(dict(a=a,b=b,correlation=corr,same_direction=same,overlap=len(changes),active_events=int(sum(active)),score=round(score),p_value=p,
-            magnitude_similarity=magnitude,stability_halves=stability,lead_lag_daily=lead_lag,confidence='adequate daily overlap' if len(changes)>=60 and all(v is not None for v in stability) else 'limited',
-            common_movement=common_corr>.8,events=[dict(date=c[0],a_change=c[1],b_change=c[2]) for c in changes if abs(c[1])>.002 and abs(c[2])>.002]))
-    for p in pairs: p['adjusted_p']=min(1,p['p_value']*len(pairs)); p['flagged']=p['score']>=75 and p['adjusted_p']<=.05 and all(v is not None and v>.5 for v in p['stability_halves'])
-    return dict(status='ready' if pairs else 'insufficient seller history',pairs=pairs,cadence='Daily, consecutive observed intervals only; no carry-forward or interpolation.',
-        disclaimer='Changes within the same observed interval; not proof of coordination or collusion.',uncontrolled=['category demand','seasonality','promotion eligibility'],
-        series={s:[{'date':d,'price':value(r)} for d,r in sorted(g.items())] for s,g in grouped.items()})
+        common = np.array(common)
+        common_corr = float(np.corrcoef(x, common)[0, 1]) if np.std(common) > 1e-7 else 0
+        score = max(0, corr) * same * 100 * (.3 if common_corr > .8 else 1)
+        half = len(x) // 2
+        stability = [
+            float(np.corrcoef(xx, yy)[0, 1])
+            if np.std(xx) > 1e-7 and np.std(yy) > 1e-7 else None
+            for xx, yy in [(x[:half], y[:half]), (x[half:], y[half:])]
+        ]
+        magnitude = float(np.mean(
+            1 - np.minimum(1, abs(x[active] - y[active]) /
+                           np.maximum(np.maximum(abs(x[active]), abs(y[active])), 1e-9))
+        ))
+        # changes contains only consecutive-day intervals (gaps are skipped above),
+        # so this guard is always True for len(changes) >= 2.  It is kept as an
+        # explicit invariant check; see docstring.
+        lead_lag = {}
+        if all(
+            (datetime.fromisoformat(b2[0]) - datetime.fromisoformat(a2[0])).days == 1
+            for a2, b2 in zip(changes, changes[1:])
+        ):
+            for lag in [-1, 0, 1]:
+                xx, yy = (
+                    (x[:-1], y[1:]) if lag == 1 else
+                    (x[1:], y[:-1]) if lag == -1 else
+                    (x, y)
+                )
+                lead_lag[str(lag)] = (
+                    float(np.corrcoef(xx, yy)[0, 1])
+                    if np.std(xx) > 1e-7 and np.std(yy) > 1e-7 else None
+                )
+        pairs.append(dict(
+            a=sid_a, b=sid_b,
+            correlation=corr, same_direction=same,
+            overlap=len(changes), active_events=int(sum(active)),
+            score=round(score), p_value=p,
+            magnitude_similarity=magnitude, stability_halves=stability,
+            lead_lag_daily=lead_lag,
+            price_basis=price_basis,
+            confidence=(
+                'adequate daily overlap'
+                if len(changes) >= 60 and all(v is not None for v in stability)
+                else 'limited'
+            ),
+            common_movement=common_corr > .8,
+            events=[
+                dict(date=c[0], a_change=c[1], b_change=c[2])
+                for c in changes
+                if abs(c[1]) > .002 and abs(c[2]) > .002
+            ],
+        ))
+    return pairs
+
+
+def sellers(rows, cutoff):
+    """
+    Cross-seller price-change correlation analysis.
+
+    Two price tracks are maintained per (seller, currency, region) slot:
+      item     – item price only (includes additional-seller observations)
+      landed   – item + shipping when both are known and tax is included
+
+    Observations from different currencies or regions are never combined
+    into the same daily median.  Slots with unknown currency (empty string)
+    are never paired.  Correlations are computed within each track;
+    item-price changes are never compared against landed-price changes.
+    Multiple offers from the same seller on the same day are aggregated with
+    median.  Duplicate observations (same key) are counted once per slot per
+    day.  Bonferroni correction is applied across the combined family of all
+    pairs (999 permutations, minimum p = 0.001) because the frontend reports
+    a single aggregated flagged count.  Series keys are plain seller IDs when
+    a seller has exactly one (currency, region) slot; composite keys of the
+    form ``"<seller_id>|<currency>|<region>"`` are used otherwise so that no
+    history is silently overwritten.
+    """
+    item_track, landed_track, rep = _seller_daily_tracks(rows, cutoff)
+
+    item_pairs   = _seller_pairs(item_track,   rep, 'item price')
+    landed_pairs = _seller_pairs(landed_track, rep, 'known landed price')
+    all_pairs    = item_pairs + landed_pairs
+
+    # Bonferroni correction is applied across the combined family of all pairs
+    # (item-price and landed-price together).  The frontend aggregates flagged
+    # counts from both price bases into a single total, so the reported family
+    # is the union.  Applying separate per-track corrections would be less
+    # conservative than the combined correction when the same seller pair
+    # appears in both tracks, inflating the apparent evidence.
+    n_all = len(all_pairs)
+    for pair in all_pairs:
+        pair['adjusted_p'] = min(1, pair['p_value'] * n_all) if n_all > 0 else pair['p_value']
+        pair['flagged'] = (
+            pair['score'] >= 75
+            and pair['adjusted_p'] <= .05
+            and all(v is not None and v > .5 for v in pair['stability_halves'])
+        )
+
+    def _series_key(slot, multi_slot_sids):
+        """Return the dict key for a slot in a series response.
+
+        When a seller appears in only one (currency, region) slot the key is
+        the plain seller ID, preserving backward compatibility with the
+        frontend and single-currency datasets.
+
+        When the same seller ID appears in more than one slot a composite key
+        ``"<seller_id>|<currency>|<region>"`` is used so that each slot gets
+        its own entry and no history is silently overwritten.
+        """
+        sid, cur, reg = slot
+        if sid in multi_slot_sids:
+            return f"{sid}|{cur}|{reg}" if (cur or reg) else sid
+        return sid
+
+    def _series(track, basis):
+        # Count how many slots each seller_id has in this track.
+        from collections import Counter
+        slot_counts = Counter(slot[0] for slot in track)
+        multi = {sid for sid, n in slot_counts.items() if n > 1}
+        result = {}
+        for slot, daily_map in track.items():
+            key = _series_key(slot, multi)
+            result[key] = [
+                {'date': d, 'price': price, 'price_basis': basis}
+                for d, price in sorted(daily_map.items())
+            ]
+        return result
+
+    # Backward-compatible ``series`` key: prefer the landed track per seller
+    # if available, otherwise fall back to item.  Use composite keys when a
+    # seller appears in multiple currency/region slots so no history is lost.
+    from collections import Counter as _Counter
+    _all_slots = list(item_track) + list(landed_track)
+    _slot_counts = _Counter(slot[0] for slot in _all_slots)
+    _multi_combined = {sid for sid, n in _slot_counts.items() if n > 1}
+    landed_sids = {slot[0] for slot in landed_track}
+    combined_series = {}
+    for slot, daily_map in landed_track.items():
+        key = _series_key(slot, _multi_combined)
+        combined_series[key] = [
+            {'date': d, 'price': price, 'price_basis': 'known landed price'}
+            for d, price in sorted(daily_map.items())
+        ]
+    for slot, daily_map in item_track.items():
+        sid = slot[0]
+        if sid not in landed_sids:
+            key = _series_key(slot, _multi_combined)
+            combined_series[key] = [
+                {'date': d, 'price': price, 'price_basis': 'item price'}
+                for d, price in sorted(daily_map.items())
+            ]
+
+    return dict(
+        status='ready' if all_pairs else 'insufficient seller history',
+        pairs=all_pairs,
+        cadence='Daily, consecutive observed intervals only; no carry-forward or interpolation.',
+        disclaimer='Changes within the same observed interval; not proof of coordination or collusion.',
+        uncontrolled=['category demand', 'seasonality', 'promotion eligibility'],
+        series=combined_series,
+        series_item=_series(item_track, 'item price'),
+        series_landed=_series(landed_track, 'known landed price'),
+        note=(
+            'item-price and landed-price pairs are computed separately. '
+            'A landed price (item + known shipping) is never compared against '
+            'an item-only price. Additional seller observations are included '
+            'in the item-price track even when shipping cost is unknown.'
+        ),
+    )
 
 def memory(rows,cutoff):
     rs=comparable(eligible(rows,cutoff)); ds=daily(rs)
@@ -225,5 +504,20 @@ def analyze(rows,cutoff,window=90,horizon=7,urgency='flexible',budget=None):
         advice='Insufficient evidence';reasons.append('The latest observed offer is out of stock; a purchasable offer must be confirmed.')
     if d.get('volatility',0)>15: reasons.append('Observed volatility exceeds 15%; price uncertainty is elevated.')
     if m.get('count'): reasons.append(f"{m['lower_after_three_days']} of {m['count']} completed analogs had a lower three-day observed price.")
-    return dict(version=VERSION,cutoff=cutoff,quality=q,discount=d,forecast=f,memory=m,sellers=sellers(rows,cutoff),audit=audits(rows,cutoff),
+    eligible_rows = eligible(rows, cutoff)
+    synthetic_count = sum(1 for row in eligible_rows if row.get('synthetic') is True)
+    real_count = len(eligible_rows) - synthetic_count
+    provenance = dict(
+        total_observations=len(eligible_rows),
+        real_observations=real_count,
+        synthetic_observations=synthetic_count,
+        contains_synthetic=synthetic_count > 0,
+        evidence_type=(
+            'mixed' if synthetic_count and real_count
+            else 'synthetic' if synthetic_count
+            else 'observed_only' if real_count
+            else 'none'
+        )
+    )
+    return dict(version=VERSION,cutoff=cutoff,provenance=provenance,quality=q,discount=d,forecast=f,memory=m,sellers=sellers(rows,cutoff),audit=audits(rows,cutoff),
         advisor=dict(recommendation=advice,reasons=reasons,urgency=urgency,target=budget,version='policy-1',disclaimer='Shopping decision aid, not guaranteed savings.'))

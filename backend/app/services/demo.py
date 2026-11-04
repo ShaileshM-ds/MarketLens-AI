@@ -1,7 +1,7 @@
 from datetime import datetime,timedelta,timezone
 import math, random
 from app.services.normalize import ingest
-from app.db import indexes
+from app.db import indexes, review_mode_enabled
 
 DEMO_END='2026-10-14T12:00:00+00:00'
 NAMES=['Auralis Studio Headphones','Luma Mechanical Keyboard','Terra Trail Backpack','Nimbus Air Purifier','Orbit Fitness Watch','Forma Desk Lamp','Echo Portable Speaker','Atlas Coffee Maker','Prism 27-inch Monitor','Solace Reading Light','Cobalt USB-C Hub','Moss Travel Bottle']
@@ -41,6 +41,9 @@ def generate():
     return rows
 
 def seed(db,reset=False):
+    if review_mode_enabled():
+        raise RuntimeError('Demo data writes are disabled in review mode')
+
     if not db.name.endswith('_demo'): raise ValueError('Demo reset refuses other databases')
     if reset:
         for name in ['products','observations','sellers','raw','runs','analyses','notifications','watchlists','jobs','quarantine']:

@@ -50,6 +50,12 @@ In a second terminal with the same `PYTHONPATH` and `MONGO_URI`, run `python -m 
 
 For POSIX shells, use `export PYTHONPATH="$PWD/backend"`, `export MONGO_URI=mongodb://127.0.0.1:27028`, and `export ALLOWED_ORIGINS=http://127.0.0.1:5174,http://localhost:5174`.
 
+## Review mode
+
+Set `REVIEW_MODE=1` and `ACTIVE_MODES=imported` in the backend environment for a source-data read-only reviewer experience. Provision reviewer accounts before enabling review mode. The application initializes only the imported database, disables registration, guest access, imports and other API writes, and stops worker processing. Existing reviewer accounts can still sign in; authentication session and rate-limit records remain operational writes. Analysis results can still be computed and existing cached results can be read, but new analysis cache entries are not saved.
+
+When `REVIEW_MODE` is disabled or unset, all three data modes remain active by default. `ACTIVE_MODES` can also be set to a comma-separated subset in non-review deployments.
+
 ## Import the snapshot
 
 The requested original `amazon_snapshot reference impana` dataset was **not present**. `sources/` was empty and has not been modified. A schema demonstration is in `data/samples/import-example.json`; it is explicitly example content, not historical Amazon evidence.

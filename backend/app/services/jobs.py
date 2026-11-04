@@ -2,9 +2,12 @@ import os,uuid
 from datetime import datetime,timedelta,timezone
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
-from app.db import now
+from app.db import now, review_mode_enabled
 
 def enqueue(db,urls):
+    if review_mode_enabled():
+        raise RuntimeError('Collection job writes are disabled in review mode')
+
     if len(urls)>int(os.getenv('BATCH_LIMIT','10')): raise ValueError('Configured batch limit exceeded')
     since=(datetime.now(timezone.utc)-timedelta(hours=24)).isoformat()
     if db.jobs.find_one({'urls':{'$in':urls},'created_at':{'$gt':since}}): raise ValueError('Minimum refresh interval is 24 hours; recent job exists')
@@ -27,6 +30,9 @@ def enqueue(db,urls):
     db.jobs.insert_one(job); return job
 
 def schedule_due(db):
+    if review_mode_enabled():
+        raise RuntimeError('Schedule processing is disabled in review mode')
+
     if os.getenv('ENABLE_LIVE')!='1' or not os.getenv('BRIGHT_DATA_API_KEY') or not os.getenv('BRIGHT_DATA_DATASET_ID'): return
     for s in db.schedules.find({'enabled':True,'due':{'$lte':now()}}):
         claimed=db.schedules.find_one_and_update({'id':s['id'],'due':s['due']},{'$set':{'due':(datetime.now(timezone.utc)+timedelta(hours=s['interval_hours'])).isoformat()}})
