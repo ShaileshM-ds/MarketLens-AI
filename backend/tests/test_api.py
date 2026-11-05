@@ -47,3 +47,37 @@ def test_asof_never_future(clients,raw):
     assert r['selected']['observation']['price']==10025
     assert a.get(f'/api/v1/products/{pid}/analysis?window=90&horizon=7').status_code==200
     assert a.get(f'/api/v1/products/{pid}/analysis?window=13').status_code==422
+
+def test_imported_overview_counts_sellers_and_observation_provenance(clients):
+    a,_=clients
+    db=database('imported')
+    db.sellers.insert_one({'id':'seller-1'})
+    db.observations.insert_many([
+        {'key':'source-1','source_type':'Synthetic','synthetic':True},
+        {'key':'history-1','source_type':'generated_history','synthetic':True},
+        {'key':'history-2','source_type':'generated_history','synthetic':True},
+    ])
+
+    data=a.get('/api/v1/overview?mode=imported').json()['data']
+
+    assert data['products']==0
+    assert data['sellers']==1
+    assert data['observations']==3
+    assert data['source_observations']==1
+    assert data['synthetic_source_observations']==1
+    assert data['generated_history_observations']==2
+    assert data['synthetic_observations']==3
+
+def test_source_evidence_resolves_importer_raw_reference(clients):
+    a,_=clients
+    db=database('imported')
+    db.raw.insert_one({'id':'source-raw','source_record':{'title':'Source title'}})
+    db.observations.insert_one({
+        'key':'source-key',
+        'source_record_ref':'source-raw',
+        'source_provenance':{'source_type':'Synthetic'},
+    })
+
+    data=a.get('/api/v1/evidence/source-key?mode=imported').json()['data']
+
+    assert data['raw']=={'title':'Source title'}

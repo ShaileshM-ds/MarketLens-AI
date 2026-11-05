@@ -1,0 +1,74 @@
+MarketLens-AI Phase 4D cleanup execution log
+============================================
+Started: 2026-11-05T03:30:57.787795+00:00
+Finished: 2026-11-05T03:33:46.886039+00:00
+Outcome: SUCCESS
+Database: marketlens_imported
+Worker status before: Exited (137) 2 hours ago
+Worker status after: Exited (137) 2 hours ago
+
+Backup
+------
+Location: dataset_audit\phase4d_product_ownership_crosswalk\backup_20261105T032858Z
+mongodump document counts: {"jobs": 466, "analyses": 3004, "product_summaries": 6342, "products": 6342, "sellers": 4013, "quarantine": 123}
+BSON recount matched those six counts.
+mongorestore --dryRun recognized all six collections and finished with 0 failures.
+A restore into temporary database marketlens_phase4d_restore_check inserted 20,290 documents with 0 failures: jobs 466, analyses 3004, product_summaries 6342, products 6342, sellers 4013, quarantine 123.
+That temporary database was dropped after the live cleanup checks passed. It is not a rollback copy.
+Rollback copy: the timestamped mongodump folder above.
+An earlier incomplete dump, backup_20261105T032803Z, contains only quarantine (123 documents) and must not be used for rollback.
+Dry-run file: dataset_audit\phase4d_product_ownership_crosswalk\backup_20261105T032858Z\mongorestore_dryrun.txt
+
+ID lists
+--------
+old_only_jobs.jsonl: ids=466 sha256=d7cb6aa2bb7e330962bc57d62475aa6d1aeaf57b4ffbefeda7f6cf119fa21c99
+old_only_analyses.jsonl: ids=3004 sha256=1ee4c4b90865b155b683b65bc779291bbfc7dadc16a34eeffb329941b155f1ab
+old_only_summaries.jsonl: ids=6342 sha256=1972a1b02bd304815daaa846c9c4c719de3226c018725f874547a52f97298131
+old_only_mongo_ids.txt: ids=6342 sha256=de5aac5da9b0dca021310ee3d958f97bd110a6bf456a68b1ce7201f8117cbd12
+old_only_sellers.jsonl: ids=4013 sha256=4ea2a47bec3253f70ad8db827ece2ad5a67aa4b34d9be531f59fbac4cbc530d2
+old_only_quarantine.jsonl: ids=123 sha256=ed6366d448a6cc4ac623e22501c22cf9a7ec6ee0e80bbe471d000849a86e0ff1
+
+Deleted counts
+--------------
+jobs: listed=466 deleted=466 remaining=0
+analyses: listed=3004 deleted=3004 remaining=0
+product_summaries: listed=6342 deleted=6342 remaining=0
+products: listed=6342 deleted=6342 remaining=0
+sellers: listed=4013 deleted=4013 remaining=0
+quarantine: listed=123 deleted=123 remaining=0
+
+Post-deletion counts
+--------------------
+{
+  "_repair_backup_20261101_173817_jobs": 771,
+  "_repair_backup_20261101_173817_observations": 1085,
+  "_repair_backup_20261101_173817_products": 771,
+  "analyses": 0,
+  "cleanup_candidates_120_20261103": 0,
+  "jobs": 0,
+  "limits": 0,
+  "notifications": 0,
+  "observations": 900000,
+  "product_summaries": 0,
+  "products": 0,
+  "quarantine": 0,
+  "raw": 0,
+  "runs": 1,
+  "sellers": 0,
+  "sessions": 0,
+  "users": 0,
+  "watchlists": 0
+}
+
+Preservation
+------------
+observations, runs, raw, and _repair_backup_* counts match the pre-deletion snapshot
+marketlens_demo and marketlens_live collection counts match the pre-deletion snapshot
+all 900,000 observations remain run_id=history-inr-120d-v1, currency=INR, synthetic=true
+history-inr-120d-v1 remains completed
+
+Warnings
+--------
+marketlens-ai-backend-1 and marketlens-ai-frontend-1 were left running.
+The worker was not restarted.
+No product or seller documents were created.

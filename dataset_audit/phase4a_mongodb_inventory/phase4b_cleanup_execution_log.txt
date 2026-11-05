@@ -1,0 +1,579 @@
+MarketLens-AI Phase 4B - Cleanup Execution Log
+==============================================
+
+Outcome: STOPPED BEFORE DELETION
+Execution time: 2026-11-04 23:47 Asia/Kolkata
+Target database queried: marketlens_imported only
+Deployment: marketlens-ai-mongo-1, local Docker Compose MongoDB
+
+No deletion, update, import, database modification, index operation, container
+stop, or other write was performed. No database outside marketlens_imported
+was queried by the preflight script.
+
+Preflight and stop reason
+-------------------------
+The database name was verified as marketlens_imported. The 18 live collection
+names matched the inventory. Exact countDocuments totals were obtained for
+each collection before any deletion.
+
+Safety check failed: the live analyses collection contains 2,604 documents;
+the approved plan reported 2,572 at the Phase 4B snapshot. This is a
+32-document difference. Although analyses are explicitly excluded from
+deletion, the execution instruction requires stopping if any count differs
+from the approved plan. Execution therefore stopped before deleting any
+record.
+
+The MarketLens worker container was also observed running. The approved plan
+requires the worker to be quiescent before job cleanup and says that pausing
+it requires separate operational authorization. No attempt was made to stop
+or alter the container.
+
+Connection detail: an initial read-only connection attempt using the client's
+default localhost address failed. The preflight was then successfully run
+using the backend's configured Mongo endpoint without displaying credentials.
+
+Current collection counts at preflight
+--------------------------------------
+Collection                                      Current count
+_repair_backup_20261101_173817_jobs             771
+_repair_backup_20261101_173817_observations     1,085
+_repair_backup_20261101_173817_products         771
+analyses                                        2,604
+cleanup_candidates_120_20261103                0
+jobs                                            12,254
+limits                                          0
+notifications                                   0
+observations                                    1,375,991
+product_summaries                               6,342
+products                                        6,342
+quarantine                                      123
+raw                                             2,700,878
+runs                                            6
+sellers                                         4,013
+sessions                                        0
+users                                           0
+watchlists                                      0
+
+Approved candidate filter preflight counts
+-------------------------------------------
+All counts below matched the approved plan. They were read-only counts only;
+no deleteMany or other mutation was issued.
+
+observations:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ source_type:"imported", source_id:"file", synthetic:false} -> 1,085
+{run_id:"amazon-charger-v1", source_type:"imported",
+ source_id:"amazon-charger-v1", synthetic:false} -> 3,198
+{run_id:"amazon-multiple-products-v1", source_type:"imported",
+ source_id:"amazon-multiple-products-v1", synthetic:false} -> 10,032
+{run_id:"amazon-usb-keyboard-mouse-v1", source_type:"imported",
+ source_id:"amazon-usb-keyboard-mouse-v1", synthetic:false} -> 1,716
+{run_id:"history-gen-v1", source_type:"generated_history",
+ source_id:"history-gen-v1", synthetic:true} -> 93,517
+{run_id:"history-gen-new-imports-v1",
+ source_type:"generated_history",
+ source_id:"history-gen-new-imports-v1", synthetic:true} -> 1,266,443
+Combined observations -> 1,375,991.
+
+raw:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ record:{$exists:true}, record._generated:{$ne:true}} -> 469
+{run_id:"amazon-charger-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 1,185
+{run_id:"amazon-multiple-products-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 4,329
+{run_id:"amazon-usb-keyboard-mouse-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 475
+{run_id:"history-gen-v1", record._generated:true,
+ record.source_id:"history-gen-v1"} -> 180,720
+{run_id:"history-gen-new-imports-v1", record._generated:true,
+ record.source_id:"history-gen-new-imports-v1"} -> 2,513,700
+Combined raw -> 2,700,878.
+
+runs:
+{id:{$in:["ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+          "amazon-charger-v1",
+          "amazon-multiple-products-v1",
+          "amazon-usb-keyboard-mouse-v1",
+          "history-gen-v1",
+          "history-gen-new-imports-v1"]}} -> 6
+
+jobs:
+The application digest formula was applied to the six run IDs and product
+IDs from their observations. Computed run-derived ID set size: 12,720.
+Exact filter {id:{$in:[computed_run_derived_job_ids]}} -> 11,788, matching
+the approved plan. Product-linked jobs outside that exact computed ID set:
+466; preserved and excluded as ambiguous.
+
+Count comparison
+----------------
+Approved plan candidate counts and current preflight counts:
+- observations: 1,375,991 / 1,375,991 (match)
+- raw: 2,700,878 / 2,700,878 (match)
+- run metadata: 6 / 6 (match)
+- run-derived jobs: 11,788 / 11,788 (match)
+
+Protected collection counts checked:
+- analyses: 2,604 current versus 2,572 in the approved plan (MISMATCH;
+  execution stopped)
+- products: 6,342
+- sellers: 4,013
+- product_summaries: 6,342
+- quarantine: 123
+- backup jobs/observations/products: 771 / 1,085 / 771
+- ambiguous product-linked jobs: 466
+
+Before/after and deletion results
+---------------------------------
+No records were deleted. Deleted counts: 0 in every collection.
+Since no mutation was issued, no post-deletion recount was run. The current
+counts above are the preflight baseline; the expected after-counts are
+therefore unchanged only in the sense that this execution made no writes.
+Independent concurrent application activity cannot be ruled out.
+
+Preserved: all ambiguous jobs, quarantine, products, sellers, summaries,
+analyses, backups, unrelated data, and the marketlens_demo and
+marketlens_live databases. No operation was performed against demo or live.
+
+Next step
+---------
+Do not retry cleanup against this snapshot. Review the analyses count
+mismatch and separately authorize any required worker-quiescence operation.
+Then obtain approval for a new execution attempt and repeat the complete
+preflight. This log does not authorize or perform a later cleanup.
+
+Phase 4C - Read-only follow-up investigation
+===========================================
+Investigation time: 2026-11-04 23:51 Asia/Kolkata.
+Scope: marketlens_imported only. No database or application mutations were
+performed. The analysis worker was not stopped.
+
+Why the analyses count increased
+--------------------------------
+The Phase 4B inventory recorded 2,572 analyses at 18:09:02 UTC. The Phase 4B
+preflight later observed 2,604, a net increase of 32. The Phase 4C read-only
+query found the collection changing during the query itself: the initial
+collection-count pass returned 2,619, while subsequent analysis-specific
+counts returned 2,623. This volatility prevents treating any one observed
+count as a stable final total.
+
+Application code in backend/app/workers/main.py confirms that an analysis
+job calls analyze() and then upserts into analyses using
+{product_id, cutoff, version} as the identity. For imported mode, cutoff is
+the current time. The upsert sets created_at to the current time. Thus worker
+analysis jobs can create new analysis documents when their cutoff differs
+from existing identities and can update existing matching identities.
+backend/app/services/normalize.py generates run-derived job IDs; this does
+not add a run_id to analysis documents.
+
+The worker container was still running (Docker status: running; restart count
+0). The exact computed run-derived jobs were observed in changing states:
+2,094 done and 9,694 queued in the prior 18:09:02 UTC snapshot; Phase 4C
+observed 2,146 done and 9,642 queued, with the same 11,788 matched job
+documents. Recent analysis records had created_at values after
+2026-11-04T18:09:02Z. These observations, together with the worker's code
+path, support that the running worker is processing analysis jobs and writing
+analysis results. Recent worker logs contained no additional success-level
+per-analysis detail; the code and database/job state changes provide the
+evidence of activity.
+
+Attribution of the additional documents
+---------------------------------------
+The Phase 4C analyses query returned 2,623 at its analysis-specific read:
+- 2,623 analysis documents linked by product_id to the 6,342-product set
+  from the six verified old runs.
+- 0 analysis documents with product_id outside that candidate set.
+- synthetic distribution: 2,161 true and 462 false.
+- 56 documents had created_at after the prior 18:09:02 UTC snapshot cutoff;
+  all 56 were linked to candidate products. Because created_at is rewritten
+  on upsert, this is a recent-record/update indicator, not an exact count of
+  newly inserted records.
+
+The 32-document increase observed at preflight is therefore consistent with
+worker-created analyses for products associated with the old-run observations.
+However, analyses have no run_id or source provenance, and product linkage
+does not prove exclusive run ownership. Some analyses are synthetic=false.
+The exact 32 cannot be uniquely attributed to the six runs or distinguished
+from shared/unrelated analyses from the available schema. Preserve all
+analyses; none are candidates in the approved deletion plan.
+
+Worker activity and safe-proceed recommendation
+-----------------------------------------------
+The worker is still running and analysis counts/job states are changing.
+Do not execute cleanup while it is active. The candidate deletion filters
+below still match their approved counts, but the overall preflight condition
+from the execution request has not cleared: analyses remain outside the
+approved plan's 2,572 count and changed during inspection.
+
+Even after the worker finishes, do not proceed automatically under the
+existing approval. First confirm the worker is quiescent, take a fresh
+read-only baseline, verify every collection count and exact deletion-filter
+count, and update/reapprove the baseline if any count differs from the
+approved plan. Preserve analyses regardless of their updated count. Cleanup
+should proceed only after an explicit approval of the refreshed plan and
+counts.
+
+Phase 4C recount of all approved candidate filters
+--------------------------------------------------
+Database: marketlens_imported. The collection names remained the same 18
+names listed in the preflight section above. All approved deletion-filter
+counts below matched the approved plan during this Phase 4C query:
+
+observations:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ source_type:"imported", source_id:"file", synthetic:false} -> 1,085
+{run_id:"amazon-charger-v1", source_type:"imported",
+ source_id:"amazon-charger-v1", synthetic:false} -> 3,198
+{run_id:"amazon-multiple-products-v1",
+ source_type:"imported", source_id:"amazon-multiple-products-v1",
+ synthetic:false} -> 10,032
+{run_id:"amazon-usb-keyboard-mouse-v1",
+ source_type:"imported", source_id:"amazon-usb-keyboard-mouse-v1",
+ synthetic:false} -> 1,716
+{run_id:"history-gen-v1", source_type:"generated_history",
+ source_id:"history-gen-v1", synthetic:true} -> 93,517
+{run_id:"history-gen-new-imports-v1",
+ source_type:"generated_history",
+ source_id:"history-gen-new-imports-v1", synthetic:true} -> 1,266,443
+Combined observations -> 1,375,991.
+
+raw:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ record:{$exists:true}, record._generated:{$ne:true}} -> 469
+{run_id:"amazon-charger-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 1,185
+{run_id:"amazon-multiple-products-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 4,329
+{run_id:"amazon-usb-keyboard-mouse-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 475
+{run_id:"history-gen-v1", record._generated:true,
+ record.source_id:"history-gen-v1"} -> 180,720
+{run_id:"history-gen-new-imports-v1", record._generated:true,
+ record.source_id:"history-gen-new-imports-v1"} -> 2,513,700
+Combined raw -> 2,700,878.
+
+runs:
+{id:{$in:["ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+          "amazon-charger-v1",
+          "amazon-multiple-products-v1",
+          "amazon-usb-keyboard-mouse-v1",
+          "history-gen-v1",
+          "history-gen-new-imports-v1"]}} -> 6.
+
+jobs:
+The freshly computed run-derived ID array had 12,720 IDs; the exact filter
+{id:{$in:[computed_run_derived_job_ids]}} matched 11,788 jobs. Their observed
+states were 2,146 done and 9,642 queued. The 466 product-linked jobs outside
+that exact ID set remain ambiguous and excluded.
+
+No candidate filter was executed as a deletion. Deleted count remains zero.
+
+Phase 4D - Read-only worker completion and cleanup preflight
+===========================================================
+Preflight snapshot: 2026-11-04 23:55 Asia/Kolkata.
+Target queried: marketlens_imported only. No database writes were issued.
+
+Worker and outstanding job status
+---------------------------------
+Docker inspection reported marketlens-ai-worker-1 status=running,
+running=true, restart_count=0. The worker has not completed or stopped.
+The exact run-derived job-ID set was recomputed from the six old run IDs
+and their current observation product IDs using the application digest
+formula:
+- Computed job IDs: 12,720.
+- Matched run-derived jobs: 11,788.
+- Current states: done 2,155; queued 9,633.
+- Active/pending run-derived states: queued 9,633.
+- No matching working, running, retry, retrying, polling, or submitting jobs
+  appeared in this grouped state snapshot.
+- Ambiguous product-linked jobs outside the exact ID set: 466; preserved.
+
+Although no matched job was in a non-queued active state at the instant
+queried, the worker is still running and 9,633 exact run-derived jobs remain
+queued. Processing has not settled. Per the Phase 4D instruction, stop here
+and do not execute cleanup.
+
+Current collection counts and protected analyses
+------------------------------------------------
+The 18 collection names matched the earlier preflight. Current
+countDocuments snapshot:
+_repair_backup_20261101_173817_jobs             771
+_repair_backup_20261101_173817_observations     1,085
+_repair_backup_20261101_173817_products         771
+analyses                                        2,634
+cleanup_candidates_120_20261103                0
+jobs                                            12,254
+limits                                          0
+notifications                                   0
+observations                                    1,375,991
+product_summaries                               6,342
+products                                        6,342
+quarantine                                      123
+raw                                             2,700,878
+runs                                            6
+sellers                                         4,013
+sessions                                        0
+users                                           0
+watchlists                                      0
+
+Analyses remain fully excluded from cleanup. The 2,634 count is 62 above
+the approved plan's 2,572 snapshot and 15 above the Phase 4C analysis count
+of 2,619. Prior investigation established that analyses have no run_id or
+source provenance and that the running worker upserts analysis results.
+Preserve all analysis documents regardless of current count.
+
+Phase 4D recount of approved cleanup filters
+--------------------------------------------
+All candidate counts below matched the approved plan in this read-only
+snapshot:
+
+observations:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ source_type:"imported", source_id:"file", synthetic:false} -> 1,085
+{run_id:"amazon-charger-v1", source_type:"imported",
+ source_id:"amazon-charger-v1", synthetic:false} -> 3,198
+{run_id:"amazon-multiple-products-v1",
+ source_type:"imported", source_id:"amazon-multiple-products-v1",
+ synthetic:false} -> 10,032
+{run_id:"amazon-usb-keyboard-mouse-v1",
+ source_type:"imported", source_id:"amazon-usb-keyboard-mouse-v1",
+ synthetic:false} -> 1,716
+{run_id:"history-gen-v1", source_type:"generated_history",
+ source_id:"history-gen-v1", synthetic:true} -> 93,517
+{run_id:"history-gen-new-imports-v1",
+ source_type:"generated_history",
+ source_id:"history-gen-new-imports-v1", synthetic:true} -> 1,266,443
+Combined observations -> 1,375,991.
+
+raw:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ record:{$exists:true}, record._generated:{$ne:true}} -> 469
+{run_id:"amazon-charger-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 1,185
+{run_id:"amazon-multiple-products-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 4,329
+{run_id:"amazon-usb-keyboard-mouse-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 475
+{run_id:"history-gen-v1", record._generated:true,
+ record.source_id:"history-gen-v1"} -> 180,720
+{run_id:"history-gen-new-imports-v1", record._generated:true,
+ record.source_id:"history-gen-new-imports-v1"} -> 2,513,700
+Combined raw -> 2,700,878.
+
+runs:
+{id:{$in:["ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+          "amazon-charger-v1",
+          "amazon-multiple-products-v1",
+          "amazon-usb-keyboard-mouse-v1",
+          "history-gen-v1",
+          "history-gen-new-imports-v1"]}} -> 6.
+
+run-derived jobs:
+{id:{$in:[the freshly recomputed 12,720 application-derived IDs]}}
+-> 11,788; states done=2,155, queued=9,633.
+
+Comparison to approved plan
+---------------------------
+- observations: 1,375,991 vs 1,375,991 (match)
+- raw: 2,700,878 vs 2,700,878 (match)
+- run-derived jobs: 11,788 vs 11,788 (match)
+- run documents: 6 vs 6 (match)
+- analyses (protected): 2,634 vs 2,572 at approval snapshot (mismatch;
+  preserved, not part of cleanup)
+
+No deletion or other mutation was performed; deleted counts remain zero.
+Cleanup is not ready because the worker remains running and thousands of
+approved run-derived jobs remain queued. After processing settles, require a
+fresh read-only preflight and compare all counts to the approved plan;
+because analyses have changed, obtain explicit approval of a refreshed
+baseline before any future cleanup. This Phase 4D log is not cleanup
+authorization.
+
+Phase 4D follow-up - worker settlement check
+============================================
+Read-only check time: 2026-11-04 23:57 Asia/Kolkata.
+Target queried: marketlens_imported only. No database writes were issued.
+
+Worker status: marketlens-ai-worker-1 is still running=true, status=running,
+restart_count=0.
+
+Two grouped snapshots of the exact 12,720-ID run-derived job set were taken
+15 seconds apart:
+
+State              Snapshot 1   Snapshot 2
+queued                 9,622        9,621
+running/working             0            0
+retrying                    0            0
+completed/done          2,166        2,167
+failed                      0            0
+total matched          11,788       11,788
+
+The snapshots were not stable: one job transitioned from queued to done.
+9,621 jobs remain queued, so the six old-run job set is not settled.
+
+Result: NOT READY. Per instruction, stop without recalculating the other
+approved cleanup-filter counts because active jobs remain. Preserve all
+analyses, the 466 ambiguous jobs, quarantine, shared records, backups, and
+unrelated data. No cleanup or database modification was performed.
+
+Phase 4B - authorized cleanup attempt blocked by worker
+=======================================================
+Check time: 2026-11-05 06:44 Asia/Kolkata.
+Target database for the proposed cleanup: marketlens_imported.
+
+Fresh read-only preflight result:
+- Docker inspection reported marketlens-ai-worker-1 status=running,
+  running=true, restart_count=0.
+- Mandatory worker-quiescence condition failed. Per instruction, stopped
+  immediately without querying or changing database records.
+- No cleanup filters were recounted in this attempt; prior inventory counts
+  are historical and are not represented as a fresh baseline.
+
+Outcome:
+- No delete, update, index operation, container stop/restart, or database
+  query was performed in this attempt.
+- Records deleted: 0. Before/after database counts: not obtained.
+- Errors: cleanup not executed; blocker is the running worker.
+- Verification: worker remains running. No claim is made about current
+  cleanup candidate counts or post-cleanup state.
+- No operation was performed against marketlens_demo or marketlens_live.
+
+Next step: do not retry until the worker is quiescent through a separately
+authorized operational action. Then obtain a fresh read-only preflight and
+reconcile all counts against the approved plan. This blocked attempt does
+not authorize or perform any database deletion.
+
+Phase 4B - post-stop read-only preflight
+========================================
+Check time: 2026-11-05 06:51 Asia/Kolkata.
+Target database queried: marketlens_imported only.
+Worker status before preflight: marketlens-ai-worker-1 status=exited,
+running=false, restart_count=0. The worker was not stopped or restarted by
+this preflight.
+
+Fresh exact-filter counts:
+- observations: 1,375,991 total, matching all six approved per-run filters:
+  ee40b2c5fc9f4cc4a3d8c7a0edae72b4=1,085;
+  amazon-charger-v1=3,198;
+  amazon-multiple-products-v1=10,032;
+  amazon-usb-keyboard-mouse-v1=1,716;
+  history-gen-v1=93,517;
+  history-gen-new-imports-v1=1,266,443.
+- raw: 2,700,878 total, matching all six approved per-run filters:
+  469, 1,185, 4,329, 475, 180,720, and 2,513,700 respectively.
+- old run documents: 6, matching the approved filter.
+- computed run-derived job IDs: 12,720; exact ID filter matched 11,788
+  jobs, all mode=imported and kind=analysis.
+- job snapshots 15 seconds apart: snapshot 1 queued=9,261, done=2,527,
+  total=11,788; snapshot 2 queued=9,261, done=2,527, total=11,788.
+  Running, retrying, failed, and other states=0 in both snapshots.
+- protected collection counts: analyses=3,004; products=6,342;
+  sellers=4,013; product_summaries=6,342; quarantine=123;
+  backup jobs/observations/products=771/1,085/771;
+  cleanup_candidates_120_20261103=0.
+- INR preservation check: observations with run_id
+  history-inr-120d-v1=900,000. Its run document remains completed with
+  generated_count=900,000, observations_inserted=628,000, and
+  observations_already_present=272,000.
+
+Reconciliation and outcome:
+- All six observation and raw candidate counts, six run documents, and
+  11,788 exact run-derived jobs matched the approved plan.
+- Protected analyses count is 3,004 versus the plan baseline of 2,572,
+  a 432-document mismatch. This fails the mandatory full count-reconciliation
+  condition; execution stopped before deletion.
+- Job counts did not change across the 15-second snapshots. Worker is stopped.
+- Deleted counts: 0. No delete, update, index operation, or container action
+  was performed by this preflight. No post-deletion counts apply.
+- INR observations and completed run document were verified intact.
+- No operation was performed against marketlens_demo or marketlens_live.
+
+Result: NOT READY. Preserve all records. Obtain review/approval of a refreshed
+baseline reflecting the analyses count before another cleanup attempt. This
+preflight is read-only and does not authorize any deletion.
+
+Phase 4B - authorized old-dataset cleanup execution
+==================================================
+Execution time: 2026-11-05 07:07 Asia/Kolkata.
+Target database: marketlens_imported only.
+Worker before and after execution: marketlens-ai-worker-1 status=exited,
+running=false, restart_count=0.
+
+Preflight:
+- Final automated preflight ran immediately before mutation and passed.
+- All six exact observation filters matched approved counts and each broad
+  run_id count equaled its exact filter count:
+  ee40b2c5fc9f4cc4a3d8c7a0edae72b4=1,085;
+  amazon-charger-v1=3,198;
+  amazon-multiple-products-v1=10,032;
+  amazon-usb-keyboard-mouse-v1=1,716;
+  history-gen-v1=93,517;
+  history-gen-new-imports-v1=1,266,443.
+- All six exact raw filters matched approved counts and broad run_id counts:
+  469, 1,185, 4,329, 475, 180,720, and 2,513,700 respectively.
+- Six old run documents matched the approved ID set and run metadata.
+  The four original source-import run documents omit source_type, consistent
+  with the approved inventory; their mode, synthetic flag, accepted count,
+  run IDs, and observation/raw provenance matched. Both generated-history
+  run documents had generated_history provenance and completed status.
+- Computed run-derived job-ID set: 12,720 IDs; matched 11,788 jobs, all
+  mode=imported, kind=analysis; states queued=9,261, done=2,527.
+- The 466 ambiguous product-linked jobs were separately identified and
+  excluded from the deletion ID set.
+- INR preservation check passed: 900,000 observations and completed run
+  history-inr-120d-v1 with generated_count=900,000,
+  observations_inserted=628,000, observations_already_present=272,000.
+- Protected preflight counts: analyses=3,004; products=6,342; sellers=4,013;
+  product_summaries=6,342; quarantine=123; backup jobs/observations/products
+  =771/1,085/771; cleanup_candidates_120_20261103=0.
+- Collection totals before deletion: observations=2,275,991; raw=2,700,878;
+  jobs=12,254; runs=7.
+- No preflight blocker remained. All database operations were confined to
+  marketlens_imported. marketlens_demo and marketlens_live were not queried
+  or modified.
+
+Deleted counts (exact approved filters only):
+- jobs by freshly computed run-derived ID filter: 11,788.
+- observations: ee40b2c5fc9f4cc4a3d8c7a0edae72b4=1,085;
+  amazon-charger-v1=3,198;
+  amazon-multiple-products-v1=10,032;
+  amazon-usb-keyboard-mouse-v1=1,716;
+  history-gen-v1=93,517;
+  history-gen-new-imports-v1=1,266,443.
+  Total observations deleted: 1,375,991.
+- raw: ee40b2c5fc9f4cc4a3d8c7a0edae72b4=469;
+  amazon-charger-v1=1,185;
+  amazon-multiple-products-v1=4,329;
+  amazon-usb-keyboard-mouse-v1=475;
+  history-gen-v1=180,720;
+  history-gen-new-imports-v1=2,513,700.
+  Total raw records deleted: 2,700,878.
+- Six approved old run documents deleted last.
+- No delete errors occurred.
+
+Post-deletion verification:
+- Every old-run observation and raw run_id count is zero.
+- Exact computed old-run job filter remaining count=0.
+- Old run document filter remaining count=0.
+- Remaining collection totals: observations=900,000; raw=0; jobs=466;
+  runs=1.
+- All 900,000 history-inr-120d-v1 observations remain. Its completed run
+  document and counts are unchanged.
+- Entire analyses collection preserved: count=3,004 and sorted BSON SHA-256
+  fingerprint unchanged (b401e9bfd65a8380b8ab6355d9a06e1dcb81a2284fd7bc881f743b56b5d73842).
+- Ambiguous jobs remain=466 and their document fingerprint is unchanged.
+- Protected collection counts unchanged: products=6,342; sellers=4,013;
+  product_summaries=6,342; quarantine=123; backup jobs/observations/products
+  =771/1,085/771; cleanup_candidates_120_20261103=0.
+- Worker remains stopped. No database operation was made against
+  marketlens_demo or marketlens_live.
+
+An initial guarded preflight attempt made no changes and stopped because its
+validator incorrectly required source_type on the four original source-run
+metadata documents. Read-only inspection confirmed that field is absent in
+those documents and that the approved inventory attributes them by exact run
+ID and matching provenance. The corrected final preflight above passed
+without relaxing any deletion filter.
+
+Outcome: SUCCESS. Exact authorized cleanup completed and all post-deletion
+verification checks passed.

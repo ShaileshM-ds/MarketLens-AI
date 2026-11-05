@@ -1,0 +1,34 @@
+{
+  "source_files_used": [
+    "cameras_dataset_enriched.csv",
+    "mens_clothing_dataset_enriched.csv",
+    "smart_home_dataset_enriched.csv",
+    "wearables_dataset_enriched.csv",
+    "womens_clothing_dataset_enriched.csv"
+  ],
+  "source_observation_count": 7500,
+  "source_unique_observation_ids": 7500,
+  "generated_rows": 900000,
+  "unique_products": 2500,
+  "unique_sellers": 3015,
+  "unique_listings": 7500,
+  "currency_distribution": {
+    "INR": 900000
+  },
+  "date_range": {
+    "start": "2026-07-07T04:30:00+00:00",
+    "end": "2026-11-03T05:40:00+00:00"
+  },
+  "unique_dates": 120,
+  "duplicate_generated_ids": 0,
+  "blank_source_observation_id_rows": 0,
+  "source_observation_id_mismatch_rows": 0,
+  "invalid_price_rows": 0,
+  "missing_required_field_rows": 0,
+  "synthetic_rows": 900000,
+  "output_file": "C:\\Users\\Impana Dechamma\\MarketLens-AI\\dataset_audit\\phase3c_materialized_history\\historical_observations_120d.csv",
+  "backup_file": "C:\\Users\\Impana Dechamma\\MarketLens-AI\\dataset_audit\\phase3c_materialized_history\\historical_observations_120d_backup.csv",
+  "seed": 42,
+  "generation_period_days": 120,
+  "generation_window": "rolling 120-day interval per source anchor"
+}

@@ -1,0 +1,44 @@
+MarketLens-AI product and seller identity resolution plan
+READ-ONLY planning document. No IDs are rewritten in source files or the database.
+
+1. Evidence from this audit
+- The ten provider-export datasets use ASIN identifiers and are all Amazon.com exports. The audit reports 6,414 product IDs appearing in more than one file. Most overlap is exact collection overlap: multiple_products_final/snapshot share 4,315 ASINs; charger_final/snapshot share 1,185; USB final/snapshot share 475; coolingPad final/snapshot share 469. Small additional overlaps occur between broader and focused Amazon cohorts.
+- This pattern is consistent with Amazon ASINs being reused for the same Amazon catalog item across captures/category exports, not independently assigned IDs. ASIN is a product/catalog identity, not a seller-listing identity. It should be scoped with marketplace (and, where necessary, variant/child ASIN).
+- 322 overlapping ASINs have text conflicts: 306 title-only differences, 13 category-only differences, and 3 both. Examples include small title edits/brand prefixes (B00S5A8CGQ) and a category leaf changing from CD & DVD Drives to Blu-ray Drives (B096SQK922). Such differences look like scrape/title/taxonomy variation, not evidence that the ASIN was reused for unrelated products. Still review the full conflict rows in cross_dataset_report.txt; do not arbitrarily overwrite catalog attributes.
+- 266 ASINs have differing seller identities across files/captures. That is expected for changing Buy Box/seller offers and confirms seller must not be part of product_id.
+- The clothing dataset has 500 MCL product IDs, each with three rows across Amazon, Flipkart and Myntra. Product names/categories are consistent across those rows and listing IDs are distinct (1,500/1,500). These are intentionally cross-market canonical product IDs and must remain shared as one product if the product catalog intends cross-market comparison.
+
+2. Canonical product identity
+- For the Amazon exports, provisional product key: (normalized marketplace, ASIN). Use asin, not parent_asin. A parent ASIN can represent a family and collapse child variants; if product variant distinctions matter, include the child ASIN/explicit variant key rather than silently merging.
+- For the synthetic clothing file, preserve product_id (MCL...) across marketplaces. Do not regenerate a separate product entity per marketplace; its repeated ID is intentional and supported by exact title/category agreement.
+- Maintain a separate source key (source file + source row/capture) for traceability. If two products share an ID but have conflicting names/attributes, put the conflict in review rather than merging or choosing first/last silently.
+- Do not merge ASIN and MCL namespaces. Use a typed/namespace-aware product identity so an accidental textual collision cannot merge unrelated IDs.
+
+3. Listing identity proposal
+The stable listing is a seller's offer for a product on one marketplace, not the product itself and not a time-stamped price. Proposed deterministic key:
+  listing_key = marketplace | canonical_product_key | stable_seller_key | normalized_condition | stable_variant_key
+Store/hash this canonical tuple into listing_id only after defining serialization/versioning. Exclude price, discount, capture timestamp, and delivery text so price changes do not create new listings. Keep product_id separate.
+
+Seller key precedence:
+1. Explicit seller_id.
+2. Seller ID parsed from seller_url's seller query parameter.
+3. A reviewed, normalized seller-name key only as a low-confidence fallback; mark inferred identity and avoid merging ambiguous aliases.
+4. If none exists, seller identity/listing is unresolved. Do not invent a seller ID or use a shared “unknown” key that merges unrelated sellers.
+
+Condition and variants:
+- Include condition where a seller may have separate New/Used/Refurbished offers. Use normalized exact condition labels.
+- Include stable variant attributes only when they identify a distinct sellable variant and are consistent across files. Do not use broad parent_asin in place of child ASIN.
+- The same seller+condition appears more than once in many other_sellers_prices arrays; 1,453 product rows have multiple prices for repeated seller+condition. No stable offer ID is visible in those entries. Treat such groups as ambiguous (do not create IDs using price or array index); retain raw entries for review, or require a provider offer identifier / adjudication policy before expansion.
+- The top-level Buy Box row and a nested seller row may identify the same seller. Deduplicate by the proposed identity after comparing price/condition/capture, but do not discard distinct evidence silently.
+
+4. Cross-file cohort policy
+- Before loading, choose one of: (a) select a single authoritative file per capture cohort, or (b) retain final/snapshot as distinct observations only if their timestamps represent independently captured snapshots and the historical use is approved. Do not concatenate overlapping files as separate listings without source/capture deduplication.
+- Same marketplace + ASIN + seller + condition + capture time with identical values is a duplicate observation; deduplicate idempotently. Same key/time with different prices is a conflict needing review, not two stable listings.
+- Across different captures, same listing_id is expected and means the same offer observed at different times. Different seller IDs for the same product mean different listings, not product conflicts.
+- The clothing dataset's 500 products x 3 marketplaces yields 1,500 listings; its provided listing IDs can be retained after uniqueness and referential validation.
+
+5. Attribute conflict resolution
+- Preserve each source title/category path and capture provenance. Do not use source file order as precedence.
+- For names, compare normalized text and source timestamps; changes may be title cleanup or listing-title drift. Select a display title by an explicit governance rule only after review.
+- For categories, retain full provider path in metadata and map the leaf to an agreed taxonomy. The 13 category-only conflicts and 3 combined title/category conflicts need category-owner review; do not infer a new physical product from taxonomy differences alone.
+- ASIN identity is strong for Amazon.com but does not prove exact equivalence across a different marketplace domain. Always scope marketplace-specific IDs and validate child variants.

@@ -1,0 +1,297 @@
+{
+  "started_at": "2026-11-05T03:09:10.256420+00:00",
+  "finished_at": "2026-11-05T03:12:18.652828+00:00",
+  "database_names_seen": [
+    "admin",
+    "config",
+    "local",
+    "marketlens_demo",
+    "marketlens_imported",
+    "marketlens_live"
+  ],
+  "database_audited": "marketlens_imported",
+  "writes_performed": false,
+  "collection_counts": {
+    "_repair_backup_20261101_173817_jobs": 771,
+    "_repair_backup_20261101_173817_observations": 1085,
+    "_repair_backup_20261101_173817_products": 771,
+    "analyses": 3004,
+    "cleanup_candidates_120_20261103": 0,
+    "jobs": 466,
+    "limits": 0,
+    "notifications": 0,
+    "observations": 900000,
+    "product_summaries": 6342,
+    "products": 6342,
+    "quarantine": 123,
+    "raw": 0,
+    "runs": 1,
+    "sellers": 4013,
+    "sessions": 0,
+    "users": 0,
+    "watchlists": 0
+  },
+  "inr_run": {
+    "id": "history-inr-120d-v1",
+    "mode": "imported",
+    "source_type": "historical_csv_import",
+    "synthetic": true,
+    "status": "completed",
+    "source_filename": "historical_observations_120d.csv",
+    "source_sha256": "1383ee4612d525aefc78aee25e869c17556ae2255078f042955f54bfcdac31d7",
+    "generated_count": 900000,
+    "observations_inserted": 628000,
+    "observations_already_present": 272000
+  },
+  "run_documents": [
+    {
+      "id": "history-inr-120d-v1",
+      "mode": "imported",
+      "source_type": "historical_csv_import",
+      "status": "completed"
+    }
+  ],
+  "observation_groups": [
+    {
+      "_id": {
+        "run_id": "history-inr-120d-v1",
+        "source_type": "generated_history",
+        "synthetic": true,
+        "currency": "INR"
+      },
+      "n": 900000
+    }
+  ],
+  "canonical_marketplace_counts": {
+    "Flipkart": 300000,
+    "Amazon India": 180000,
+    "Croma": 180000,
+    "Myntra": 120000,
+    "Amazon": 120000
+  },
+  "parent_link_counts": {
+    "no_resolved_parent": 3953,
+    "self_parent_only": 2389,
+    "non_self_parent": 0
+  },
+  "old_run_observation_counts": {
+    "ee40b2c5fc9f4cc4a3d8c7a0edae72b4": 0,
+    "amazon-charger-v1": 0,
+    "amazon-multiple-products-v1": 0,
+    "amazon-usb-keyboard-mouse-v1": 0,
+    "history-gen-v1": 0,
+    "history-gen-new-imports-v1": 0
+  },
+  "old_run_raw_counts": {
+    "ee40b2c5fc9f4cc4a3d8c7a0edae72b4": 0,
+    "amazon-charger-v1": 0,
+    "amazon-multiple-products-v1": 0,
+    "amazon-usb-keyboard-mouse-v1": 0,
+    "history-gen-v1": 0,
+    "history-gen-new-imports-v1": 0
+  },
+  "raw_count": 0,
+  "product_document_keys": [
+    "_id",
+    "brand",
+    "category",
+    "condition",
+    "country",
+    "currency",
+    "external_id",
+    "id",
+    "image_url",
+    "marketplace",
+    "parent_id",
+    "product_url",
+    "title",
+    "variant"
+  ],
+  "classification_counts": {
+    "B_old_only": 6342
+  },
+  "catalogue_products": 6342,
+  "catalogue_marketplaces": {
+    "amazon.com": 6342
+  },
+  "catalogue_currencies": {
+    "USD": 6342
+  },
+  "observation_product_ids": 2500,
+  "catalogue_ids_overlapping_inr_observations": [],
+  "catalogue_external_ids_overlapping_inr_products": [],
+  "application_hash_collision_with_catalogue": [],
+  "application_hash_collision_with_observations": [],
+  "source_match": {
+    "source_file_rows": 7500,
+    "source_unique_observation_ids": 7500,
+    "source_duplicate_observation_ids": 0,
+    "source_unique_products": 2500,
+    "source_unique_sellers": 3015,
+    "source_unique_listings": 7500,
+    "mongo_distinct_source_observation_ids": 7500,
+    "matching_source_observation_ids": 7500,
+    "source_frequency": [
+      {
+        "rows_per_source_id": 120,
+        "source_ids": 7500
+      }
+    ],
+    "blank_source_observation_ids": 0,
+    "duplicate_stored_observation_ids": 0,
+    "non_historical_observation_counts": {
+      "synthetic_not_true": 0,
+      "source_type_not_generated_history": 0,
+      "run_id_not_inr": 0,
+      "currency_not_inr": 0,
+      "self_source_rows": 0
+    },
+    "source_product_ids_match_observation_product_ids": true,
+    "canonical_product_ids_match_product_id_field": true
+  },
+  "source_match_exceptions": {
+    "source_ids_missing_from_mongo_references": [],
+    "mongo_source_ids_not_in_files": [],
+    "source_products_missing_from_observations": [],
+    "observation_products_missing_from_sources": []
+  },
+  "source_files": [
+    {
+      "file": "cameras_dataset_enriched.csv",
+      "rows_adapted": 1500,
+      "quarantined": 0,
+      "distinct_observation_ids": 1500,
+      "distinct_product_ids": 500,
+      "distinct_seller_ids": 15,
+      "distinct_listing_ids": 1500
+    },
+    {
+      "file": "mens_clothing_dataset_enriched.csv",
+      "rows_adapted": 1500,
+      "quarantined": 0,
+      "distinct_observation_ids": 1500,
+      "distinct_product_ids": 500,
+      "distinct_seller_ids": 1500,
+      "distinct_listing_ids": 1500
+    },
+    {
+      "file": "smart_home_dataset_enriched.csv",
+      "rows_adapted": 1500,
+      "quarantined": 0,
+      "distinct_observation_ids": 1500,
+      "distinct_product_ids": 500,
+      "distinct_seller_ids": 15,
+      "distinct_listing_ids": 1500
+    },
+    {
+      "file": "wearables_dataset_enriched.csv",
+      "rows_adapted": 1500,
+      "quarantined": 0,
+      "distinct_observation_ids": 1500,
+      "distinct_product_ids": 500,
+      "distinct_seller_ids": 15,
+      "distinct_listing_ids": 1500
+    },
+    {
+      "file": "womens_clothing_dataset_enriched.csv",
+      "rows_adapted": 1500,
+      "quarantined": 0,
+      "distinct_observation_ids": 1500,
+      "distinct_product_ids": 500,
+      "distinct_seller_ids": 1500,
+      "distinct_listing_ids": 1500
+    }
+  ],
+  "analyses": {
+    "documents": 3004,
+    "distinct_product_ids": 2991,
+    "synthetic_counts": {
+      "False": 462,
+      "True": 2542
+    },
+    "product_ids_outside_catalogue": [],
+    "product_ids_matching_inr": []
+  },
+  "jobs": {
+    "documents": 466,
+    "states": {
+      "done": 466
+    },
+    "run_id_values": {
+      "None": 466
+    },
+    "product_ids_outside_catalogue": [],
+    "product_ids_matching_inr": []
+  },
+  "summaries": {
+    "documents": 6342,
+    "ids_outside_catalogue": [],
+    "ids_matching_inr": []
+  },
+  "sellers": {
+    "catalogue_sellers": 4013,
+    "observation_sellers": 3015,
+    "source_sellers": 3015,
+    "sellers_in_both_catalogue_and_inr_observations": 0,
+    "old_catalogue_sellers_absent_from_inr_observations": 4013,
+    "inr_observation_sellers_absent_from_catalogue": 3015,
+    "source_sellers_match_observation_sellers": true,
+    "seller_document_keys": [
+      "_id",
+      "id",
+      "name",
+      "seller_id_type"
+    ],
+    "seller_marketplaces": {
+      "null": 4013
+    }
+  },
+  "quarantine": {
+    "documents": 123,
+    "keys": [
+      "_id",
+      "raw_ref",
+      "reason",
+      "run_id"
+    ],
+    "run_ids": {
+      "ee40b2c5fc9f4cc4a3d8c7a0edae72b4": 7,
+      "amazon-charger-v1": 7,
+      "amazon-multiple-products-v1": 108,
+      "amazon-usb-keyboard-mouse-v1": 1
+    },
+    "sample": [
+      {
+        "run_id": "ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+        "reason": "Positive price is required",
+        "source": null,
+        "product_id": null,
+        "marketplace": null,
+        "currency": null
+      },
+      {
+        "run_id": "ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+        "reason": "Positive price is required",
+        "source": null,
+        "product_id": null,
+        "marketplace": null,
+        "currency": null
+      },
+      {
+        "run_id": "ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+        "reason": "Positive price is required",
+        "source": null,
+        "product_id": null,
+        "marketplace": null,
+        "currency": null
+      }
+    ]
+  },
+  "backups": {
+    "products": 771,
+    "product_id_overlap_with_current_catalogue": 0,
+    "observation_product_id_overlap_with_current_catalogue": 0,
+    "job_product_id_overlap_with_current_catalogue": 0,
+    "marketplace_external_overlap_with_current_catalogue": 466
+  }
+}

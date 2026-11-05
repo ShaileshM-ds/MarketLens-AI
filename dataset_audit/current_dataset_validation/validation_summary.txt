@@ -1,0 +1,25 @@
+MarketLens-AI current dataset validation
+Source folder: C:\Users\Impana Dechamma\final_products_files
+CSV files found: 5; non-CSV files found: 0.
+Files accepted by adapter filename allowlist: 0 of 5.
+Raw records read for supplemental checks: 7500.
+Adapter record-level processing: 0 records; the adapter rejects each file by filename before reading rows.
+Adapter-mapped records: 0. Adapter-quarantined records: 0 (records were not submitted; file-level rejections are listed in quarantine_report.csv).
+Raw records with positive numeric selling price: 7500; raw records missing one or more adapter-required fields: 0. These are raw checks, not adapter acceptance.
+Naive timestamps needing an explicit timezone for adapter use: 7500.
+INR records: 7500; INR prices parse as numeric major-unit values: 7500. No conversion/import was performed.
+Unique raw product IDs: 2500; seller IDs: 3015; listing IDs: 7500.
+Raw product-ID name/category conflict groups: 0; listing-ID-to-multiple-identity groups: 0. See identity_conflict_report.csv.
+
+Adapter compatibility:
+Adapter supports exactly these CSV basenames: amazon_products_32.csv, charger_final_data.csv, charger_snapshot.csv, coolingPad_captureCard_final.csv, coolingPad_captureCard_snapshot.csv, multiple_products_final.csv, multiple_products_snapshot.csv, sd_mu9exytq1cwty0ftme.csv, usb_keyboard_mouse_final.csv, usb_keyboard_mouse_snapshot.csv; canonical: mens_clothing_3_platform_dataset-1.csv.
+All five current files are *_dataset_enriched.csv and do not match an allowed basename. Their headers contain the 27 canonical columns followed by image_url, review, rating, and review_source (see per-file report for exact columns). The adapter also requires an exact 27-column canonical header for its canonical source, so the extra columns are not accepted by its public CSV entry point.
+No aliasing, renaming, header rewriting, or application-code changes were used to force records through the adapter.
+
+Raw-data findings:
+Canonical raw fields follow the common leading-column order in files where verified; four extra fields (image_url, review, rating, review_source) are outside the 27-column canonical schema. The extra rating field is populated even in three files whose canonical product_rating field is blank, but the extra field appears review-related and must not be automatically equated with product_rating.
+Raw category distribution is in category_report.csv (20 file/category combinations). Blank categories and malformed values, if any, are listed in data_quality_report.csv.
+Nested seller offers are not assessable where source columns are absent; per-file details are in offer_analysis_report.csv.
+Warnings/optional blanks are distinguished from errors in data_quality_report.csv. All five files use INR, have positive numeric prices, no raw missing adapter-required fields, and source/source_type values identifying synthetic demonstration data. Price-derived discount checks found no mismatches; 3,162 coupon_discount values exceed 100 and need a unit interpretation (likely amount rather than percent, not concluded here). Adapter-level failures are file-level limitations, not record-level quarantine results.
+
+Readiness: NOT READY for adapter-based import. Before proceeding, decide how these enriched filenames and four extra columns should be handled, establish the timezone for naive timestamps, review raw quality/identity findings, and agree on preservation/mapping of image, review, and review-rating fields. No database or application changes were made.

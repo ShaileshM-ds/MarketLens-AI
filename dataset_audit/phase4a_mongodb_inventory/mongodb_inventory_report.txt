@@ -1,0 +1,584 @@
+MarketLens-AI Phase 4A - MongoDB Read-Only Inventory
+Inventory window: 2026-11-04 17:51-17:59 UTC (23:21-23:29 Asia/Kolkata)
+This inventory issued no database mutations. The running application worker
+was active and changed job/analysis state concurrently, as noted below.
+
+1. Connectivity and configuration
+---------------------------------
+Docker Compose services: backend, frontend, mongo, worker; all were running.
+Mongo container: marketlens-ai-mongo-1, image mongo:8.0, healthy.
+Backend container: marketlens-ai-backend-1, healthy.
+Mongo service port: internal 27017; published host port 27018.
+Mongo/backend Docker network: marketlens-ai_default (bridge).
+Backend-to-Mongo read-only ping: succeeded.
+
+The active backend configuration was inspected without printing secrets:
+- MONGO_URI scheme/host/port: mongodb, mongo, 27017 (URI database component
+  unset; the application selects databases by prefix and mode).
+- DB_PREFIX: marketlens.
+- ACTIVE_MODES and REVIEW_MODE were unset in the backend environment, so
+  application defaults apply.
+- Application database selector in backend/app/db.py uses
+  <DB_PREFIX>_<mode>, with modes demo, imported, and live.
+
+The live MongoDB deployment is the Compose MongoDB container, not Atlas. The
+live database list was admin, config, local, marketlens_demo,
+marketlens_imported, and marketlens_live. The verified database containing
+the old imported marketplace records is marketlens_imported. No alternative
+database was substituted.
+
+Important concurrent activity: the worker was running analysis jobs while
+these read-only queries were made. Job states and analysis-document counts
+changed between queries. Counts below are direct query snapshots, not a
+transactionally frozen snapshot. Re-count those mutable collections
+immediately before any future cleanup.
+
+2. Database storage and quotas
+------------------------------
+Mongo dbStats (bytes; DB-level metrics):
+
+Database             Collections  Documents / dbStats  Logical data  Storage   Indexes   Total allocated
+marketlens_imported   18           4,111,103 / 3,214,320 5,587,625,941 1,879,412,736 1,193,779,200 3,073,191,936
+marketlens_demo       14           15,788     15,707,999    4,325,376 2,576,384 6,901,760
+marketlens_live       13           0          0             53,248   167,936   221,184
+
+For marketlens_imported, the earlier 4,111,103 and 3,214,320 figures are
+superseded by the Phase 4B count audit below. The 896,783 difference was
+resolved as a mismatch between exact countDocuments totals and stale
+collStats/dbStats metadata counts; see "Database count discrepancy resolved
+to statistics mismatch."
+
+The Mongo server reported filesystem usage of approximately 72,475,668,480
+bytes out of 1,081,101,176,832 bytes at the time queried. This is the local
+Mongo container's filesystem metric, not an Atlas quota measurement.
+
+Atlas Free-tier quota status: not applicable to this verified local Compose
+Mongo deployment and not available from its metrics. The cleanup's reclaimable
+disk space cannot be promised: WiredTiger storage is allocated at collection
+level and deleting documents does not necessarily shrink files immediately.
+
+3. Collection inventory
+-----------------------
+For each collection, values are count; logical bytes / allocated storage bytes
+/ index bytes. Sizes are approximate Mongo collection statistics.
+
+marketlens_imported
+_repair_backup_20261101_173817_jobs: 771; 228,987 / 114,688 / 28,672
+_repair_backup_20261101_173817_observations: 1,085; 2,103,637 / 503,808 / 32,768
+_repair_backup_20261101_173817_products: 771; 444,633 / 151,552 / 28,672
+analyses: 2,527 at 17:58:54 UTC; approx. 113,459,631 / 37,756,928 / 483,328
+cleanup_candidates_120_20261103: 0; 0 / 12,288 / 12,288
+jobs: 12,254; 3,991,598 / 1,753,088 / 2,109,440
+limits: 0; 0 / 4,096 / 12,288
+notifications: 0; 0 / 4,096 / 8,192
+observations: 1,375,991; 1,781,394,343 / 1,151,291,392 / 706,813,952
+product_summaries: 6,342; 57,060,885 / 44,662,784 / 1,728,512
+products: 6,342; 3,651,661 / 2,723,840 / 811,008
+quarantine: 123; 21,983 / 53,248 / 36,864
+raw: 2,700,878; 3,624,399,619 / 640,040,960 / 481,234,944
+runs: 6; 1,592 / 36,864 / 73,728
+sellers: 4,013; 387,997 / 290,816 / 344,064
+sessions: 0; 0 / 4,096 / 12,288
+users: 0; 0 / 4,096 / 8,192
+watchlists: 0; 0 / 4,096 / 8,192
+
+marketlens_demo (preserve in full)
+analyses 37; jobs 36; limits 0; notifications 0; observations 7,818;
+product_summaries 36; products 36; raw 7,818; runs 1; sellers 5; sessions 0;
+settings 1; users 0; watchlists 0.
+Database logical/storage/index bytes: 15,707,999 / 4,325,376 / 2,576,384.
+Per-collection logical/storage/index bytes:
+analyses 966,224/860,160/73,728; jobs 15,660/45,056/77,824;
+limits 0/4,096/12,288; notifications 0/4,096/8,192;
+observations 9,153,166/1,941,504/1,220,608;
+product_summaries 319,362/274,432/225,280; products 10,764/20,480/61,440;
+raw 5,242,182/1,101,824/765,952; runs 177/20,480/40,960;
+sellers 390/20,480/40,960; sessions 0/4,096/12,288;
+settings 74/20,480/20,480; users 0/4,096/8,192;
+watchlists 0/4,096/8,192.
+
+marketlens_live (preserve in full)
+analyses 0; jobs 0; limits 0; notifications 0; observations 0;
+product_summaries 0; products 0; raw 0; runs 0; sellers 0; sessions 0;
+users 0; watchlists 0.
+Database logical/storage/index bytes: 0 / 53,248 / 167,936.
+Every live collection has 0 documents and 0 logical bytes. Allocated
+storage/index bytes by collection:
+analyses 4,096/8,192; jobs 4,096/12,288; limits 4,096/12,288;
+notifications 4,096/8,192; observations 4,096/16,384;
+product_summaries 4,096/45,056; products 4,096/12,288; raw 4,096/8,192;
+runs 4,096/8,192; sellers 4,096/8,192; sessions 4,096/12,288;
+users 4,096/8,192; watchlists 4,096/8,192.
+
+4. Index inventory
+------------------
+Definitions below are the live index names and key patterns. All listed
+collections also have Mongo's default _id_ index unless stated otherwise.
+
+marketlens_imported:
+- observations: product_id_1_observed_at_1
+  {product_id:1, observed_at:1}; product_id_1_seller_id_1_observed_at_1
+  {product_id:1, seller_id:1, observed_at:1}; unique key_1 {key:1}.
+- products: unique id_1 {id:1}; marketplace_1_external_id_1
+  {marketplace:1, external_id:1}.
+- sellers, raw, runs: unique id_1 {id:1}.
+- jobs: unique id_1 {id:1}; state_1_due_1_lease_until_1
+  {state:1, due:1, lease_until:1}.
+- analyses: unique product_id_1_cutoff_1_version_1
+  {product_id:1, cutoff:1, version:1}.
+- product_summaries: unique id_1 {id:1}; current_1 {current:1};
+  days_-1 {days:-1}; category_1 {category:1}; brand_1 {brand:1};
+  marketplace_1 {marketplace:1}; currency_1 {currency:1};
+  discount.score_-1 {discount.score:-1};
+  quality.distinct_days_-1 {quality.distinct_days:-1}; title_1 {title:1}.
+- limits: unique id_1 {id:1}; expires_1 {expires:1}, TTL 0 seconds.
+- notifications: unique user_id_1_event_key_1 {user_id:1, event_key:1}.
+- sessions: unique token_1 {token:1}; expires_1 {expires:1}, TTL 0 seconds.
+- users: unique username_1 {username:1}.
+- watchlists: unique user_id_1_product_id_1 {user_id:1, product_id:1}.
+- quarantine and the three _repair_backup_* collections and
+  cleanup_candidates_120_20261103: _id_ only.
+
+marketlens_demo and marketlens_live use the same application indexes listed
+above for their collections. Demo additionally has settings with _id_ only.
+No indexes were modified.
+
+5. Verified old source observations and history
+----------------------------------------------
+Every current observation belongs to one of the following six run IDs. The
+source observations are consistently source_type=imported, synthetic=false,
+marketplace amazon.com, currency USD. The history observations are consistently
+source_type=generated_history, synthetic=true, marketplace amazon.com,
+currency USD. The new locally generated INR dataset is not present in this
+database inventory.
+
+Source-import observations (strict filter counts):
+- run_id ee40b2c5fc9f4cc4a3d8c7a0edae72b4,
+  source_type=imported, synthetic=false: 1,085 observations; 469 raw records.
+  source_id is "file"; 466 products, 408 sellers.
+- run_id amazon-charger-v1, source_type=imported, synthetic=false:
+  3,198 observations; 1,185 raw records; 1,183 products, 992 sellers.
+- run_id amazon-multiple-products-v1, source_type=imported, synthetic=false:
+  10,032 observations; 4,329 raw records; 4,248 products, 2,595 sellers.
+- run_id amazon-usb-keyboard-mouse-v1, source_type=imported, synthetic=false:
+  1,716 observations; 475 raw records; 475 products, 422 sellers.
+Total old source observations: 16,031. Total associated raw records: 6,458.
+All records matched the stated source provenance markers; no same-run marker
+conflicts were found. Raw source documents have top-level run_id and record.
+
+Generated history:
+- history-gen-v1:
+  Exact observation filter
+  {run_id:"history-gen-v1", source_type:"generated_history",
+   source_id:"history-gen-v1", synthetic:true}
+  matches 93,517 observations. Exact raw filter
+  {run_id:"history-gen-v1", record._generated:true,
+   record.source_id:"history-gen-v1"} matches 180,720 raw records.
+  Persisted run metadata: days=180, seed=42, anchor_count=1,004,
+  generated_count=180,720, accepted=86,470, duplicates=94,250,
+  rejected=0, status=completed.
+- history-gen-new-imports-v1:
+  Exact observation filter
+  {run_id:"history-gen-new-imports-v1",
+   source_type:"generated_history",
+   source_id:"history-gen-new-imports-v1", synthetic:true}
+  matches 1,266,443 observations. Exact raw filter
+  {run_id:"history-gen-new-imports-v1", record._generated:true,
+   record.source_id:"history-gen-new-imports-v1"} matches 2,513,700 raw
+  records. Persisted run metadata: days=180, seed=42, anchor_count=13,965,
+  generated_count=2,513,700, accepted=2,513,700, duplicates=0,
+  rejected=0, status=completed.
+
+Both history filters matched every observation carrying the corresponding
+run_id; no same-run marker conflicts were found. However, persisted history
+observation counts are lower than run metadata/raw counts:
+- history-gen-v1: 93,517 current observations vs 180,720 generated/raw
+  records (difference 87,203).
+- history-gen-new-imports-v1: 1,266,443 current observations vs 2,513,700
+  generated/raw records (difference 1,247,257).
+The reason for these differences is not established by this read-only
+inventory. Do not equate run metadata or raw count to surviving observations.
+Representative legacy generated raw records have _generated=true and the
+matching source_id, but no source_observation_id field.
+
+6. Exact proposed cleanup filters and counts (NOT authorized or executed)
+-------------------------------------------------------------------------
+The following filters are proposals for later review only. Counts are the
+observed matches above. All counts must be re-queried immediately before any
+authorized cleanup because the worker is active.
+
+A. Source observations, individually scoped:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ source_type:"imported", synthetic:false} -> 1,085
+{run_id:"amazon-charger-v1", source_type:"imported", synthetic:false} -> 3,198
+{run_id:"amazon-multiple-products-v1", source_type:"imported",
+ synthetic:false} -> 10,032
+{run_id:"amazon-usb-keyboard-mouse-v1", source_type:"imported",
+ synthetic:false} -> 1,716
+Combined source-observation candidate count: 16,031.
+
+B. Generated observations, individually scoped:
+{run_id:"history-gen-v1", source_type:"generated_history",
+ source_id:"history-gen-v1", synthetic:true} -> 93,517
+{run_id:"history-gen-new-imports-v1", source_type:"generated_history",
+ source_id:"history-gen-new-imports-v1", synthetic:true} -> 1,266,443
+Combined generated-history candidate count: 1,359,960.
+Combined A+B observations: 1,375,991 (all documents currently in observations).
+
+C. Raw source records:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4", record:{$exists:true}} -> 469
+{run_id:"amazon-charger-v1", record:{$exists:true}} -> 1,185
+{run_id:"amazon-multiple-products-v1", record:{$exists:true}} -> 4,329
+{run_id:"amazon-usb-keyboard-mouse-v1", record:{$exists:true}} -> 475
+Combined source raw candidate count: 6,458.
+
+D. Raw generated history:
+{run_id:"history-gen-v1", record._generated:true,
+ record.source_id:"history-gen-v1"} -> 180,720
+{run_id:"history-gen-new-imports-v1", record._generated:true,
+ record.source_id:"history-gen-new-imports-v1"} -> 2,513,700
+Combined raw history candidate count: 2,694,420.
+Combined C+D raw candidates: 2,700,878 (all documents currently in raw).
+
+E. Quarantine:
+{run_id:{$in:["ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ "amazon-charger-v1","amazon-multiple-products-v1",
+ "amazon-usb-keyboard-mouse-v1"]}} -> 123 of 123.
+All 123 are rejected old source rows with reason "Positive price is required".
+Preserve unless removal of rejected source payloads is separately authorized.
+
+F. Run metadata:
+{id:{$in:["ee40b2c5fc9f4cc4a3d8c7a0edae72b4","amazon-charger-v1",
+ "amazon-multiple-products-v1","amazon-usb-keyboard-mouse-v1",
+ "history-gen-v1","history-gen-new-imports-v1"]}} -> 6 run documents.
+
+G. Run-derived analysis jobs:
+The application computes IDs as SHA256(JSON(["analysis", run_id, product_id]))
+using normalize.digest serialization. For the six verified run IDs and product
+IDs from their observations, an exact id-in-computed-set filter matched
+11,788 imported analysis jobs at 17:55:27 UTC: 9,750 queued and 2,038 done.
+An additional 466 jobs reference candidate product IDs but do not match these
+six run-derived IDs; their ownership is not established and they must be
+preserved unless separately identified. Jobs were changing state during the
+inventory.
+
+H. Product-linked records:
+The union of the verified observations' product IDs contains 6,342 IDs and
+seller IDs contains 4,013 IDs. All 6,342 corresponding product documents and
+all 4,013 corresponding seller documents exist. There were zero observations
+for those products or sellers outside the six verified run IDs.
+Possible precise filters, based on the verified ID sets:
+{id:{$in:[the 6,342 distinct candidate observation product IDs]}} on products
+-> 6,342 matches.
+{id:{$in:[the 4,013 distinct candidate observation seller IDs]}} on sellers
+-> 4,013 matches.
+{id:{$in:[the 6,342 distinct candidate product IDs]}} on product_summaries
+-> 6,342 matches.
+These collections lack per-run provenance. They are only candidates because
+all current imported observations referencing them belong to the verified old
+runs. Do not remove them before checking replacement identities and dependent
+API behavior; summaries are derived data and should be handled deliberately.
+
+Analysis results have no run_id. At 17:59:17 UTC, the filter by the verified
+6,342 product IDs matched all 2,529 analysis documents in the imported DB
+(462 synthetic=false and 2,067 synthetic=true). This is a product-reference-
+based candidate, not a run-tagged filter. The worker created more results
+during the inventory, so the count is time-sensitive. Recount and revalidate
+product ownership before any future action.
+
+7. Backups and protected/unclassified data
+------------------------------------------
+- _repair_backup_20261101_173817_observations: 1,085 documents. All match the
+  old source run ee40b2c5fc9f4cc4a3d8c7a0edae72b4 with source_type=imported,
+  source_id=file, synthetic=false. This is a repair backup, so preserve it
+  unless separately authorized after confirming its rollback purpose.
+- _repair_backup_20261101_173817_products: 771 documents, no run provenance.
+  Preserve; ownership/reference scope is not proven per document.
+- _repair_backup_20261101_173817_jobs: 771 imported analysis jobs, all queued,
+  no run ID. Preserve; ownership is not proven per document.
+- cleanup_candidates_120_20261103: empty (0 docs); do not alter its collection
+  or index.
+- Preserve marketlens_demo, marketlens_live, user/auth collections, settings,
+  sessions, watchlists, notifications, and unrelated or uncertain records.
+  Current imported users, sessions, watchlists, and notifications counts are
+  zero; zero is not authorization to alter those collections.
+- Imported quarantine, products, sellers, summaries, backup collections,
+  limits, and any records without verified ownership must not be deleted
+  wholesale.
+
+8. Storage impact and remaining risks
+-------------------------------------
+Measured old-candidate BSON payload estimates from $bsonSize:
+- Source observations: about 31.5 MB; generated observations: about 2.62 GB.
+- Source raw records: about 111.2 MB; generated raw records: about 4.22 GB.
+These are BSON-size aggregates, not freeable disk estimates. They do not
+reconcile directly to WiredTiger allocation and are not a promise of reclaimed
+space. The whole imported DB currently has about 3.07 GB allocated to data
+storage plus indexes; raw and observations occupy most of it. The exact
+collection counts and dbStats metadata counters differed because collStats
+counts were stale for observations, raw, and analyses. This does not make
+BSON-size estimates equivalent to reclaimable disk space; those estimates
+still cannot predict how much storage deletion would free.
+
+No Atlas storage quota was inspected because the verified endpoint is local
+Compose MongoDB. Whether deleting eligible records would provide enough space
+for the replacement dataset cannot be determined from the CSV file size or
+current local storage statistics.
+
+Risks/uncertainties:
+- The analysis worker was active, so job states and analysis document counts
+  changed during inspection. Re-count before any future cleanup.
+- Both history runs claim 180 days; current surviving observation counts
+  materially differ from run metadata and raw counts, with the discrepancies
+  listed above.
+- Raw/run provenance is strong for the old source and generated records, but
+  products, sellers, analyses, and summaries are not all run-tagged.
+- The repair backup collections and 466 unmatched jobs have no sufficiently
+  specific run marker for inclusion in the primary proposed filters.
+
+Recommended safe next steps
+---------------------------
+1. Review the exact per-run filters and counts in section 6. No cleanup has
+   occurred.
+2. Before any separately authorized cleanup, recalculate counts and verify
+   representative records, especially for dynamic jobs and analyses.
+3. If authorized, remove only run-scoped old observations, raw records,
+   quarantine records, and run metadata after confirming the plan; preserve
+   all backup/unclassified records.
+4. Remove only the 11,788 run-derived jobs using the exact computed-ID set.
+   Leave the 466 unmatched jobs untouched unless their ownership is later
+   proven.
+5. Handle product-linked analyses, summaries, products, and sellers only
+   after confirming all references and replacement behavior; do not use
+   collection-wide deletes.
+6. Verify counts, unrelated collections, and indexes after any future cleanup.
+7. Stop for explicit separate user authorization before any deletion.
+
+No cleanup, import, seed, update, index modification, or container restart
+was performed in Phase 4A.
+
+Phase 4B - Final read-only verification addendum
+================================================
+Verification snapshot: 2026-11-04 18:03-18:09 UTC. This addendum is the
+latest one-pass verification and supersedes earlier time-sensitive job and
+analysis counts above. No database or container changes were made by the
+inventory queries.
+
+Raw-record schema and filters
+-----------------------------
+The source-import raw documents have top-level fields _id, id, record, and
+run_id. Their record field contains the original source payload. All raw
+records in the six verified runs were accounted for by the following filters;
+there were zero records with the same run_id but contradictory raw markers.
+
+Source-import raw filters:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ record:{$exists:true}, record._generated:{$ne:true}} -> 469
+{run_id:"amazon-charger-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 1,185
+{run_id:"amazon-multiple-products-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 4,329
+{run_id:"amazon-usb-keyboard-mouse-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 475
+Combined source raw count -> 6,458.
+
+Generated-history raw filters:
+{run_id:"history-gen-v1", record._generated:true,
+ record.source_id:"history-gen-v1"} -> 180,720
+{run_id:"history-gen-new-imports-v1", record._generated:true,
+ record.source_id:"history-gen-new-imports-v1"} -> 2,513,700
+Combined generated-history raw count -> 2,694,420.
+
+The six groups above sum to all 2,700,878 raw documents. The raw collection
+had no additional run groups in the live query. The exact raw filters match
+all documents with each of the six run IDs; there are no unrelated raw
+documents matched by those filters in this snapshot.
+
+Observation filters and exact counts
+------------------------------------
+Observations do not carry a top-level mode field. Therefore do NOT add
+mode:"imported" to an observation selector; that would match zero documents.
+The source/run provenance fields below were verified in the live records.
+
+Source observations:
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ source_type:"imported", source_id:"file", synthetic:false} -> 1,085
+{run_id:"amazon-charger-v1", source_type:"imported",
+ source_id:"amazon-charger-v1", synthetic:false} -> 3,198
+{run_id:"amazon-multiple-products-v1", source_type:"imported",
+ source_id:"amazon-multiple-products-v1", synthetic:false} -> 10,032
+{run_id:"amazon-usb-keyboard-mouse-v1", source_type:"imported",
+ source_id:"amazon-usb-keyboard-mouse-v1", synthetic:false} -> 1,716
+Total -> 16,031.
+
+Generated-history observations:
+{run_id:"history-gen-v1", source_type:"generated_history",
+ source_id:"history-gen-v1", synthetic:true} -> 93,517
+{run_id:"history-gen-new-imports-v1", source_type:"generated_history",
+ source_id:"history-gen-new-imports-v1", synthetic:true} -> 1,266,443
+Total -> 1,359,960.
+All six run-scoped observation groups had zero contradictory source_type,
+source_id, or synthetic markers.
+
+Source raw counts are lower than source observation counts because raw input
+records and normalized observations are not one-to-one: importer code expands
+additional seller offers into separate observations and quarantines invalid
+source rows. This matches the six persisted source-run accepted/rejected
+counts: accepted observations equal the source-observation counts above;
+the four source runs reported 7, 7, 108, and 1 rejected rows respectively.
+The raw records preserve parent source payloads.
+
+Run metadata and history count discrepancies
+--------------------------------------------
+All six run documents were present and individually attributable by id:
+
+- ee40b2c5fc9f4cc4a3d8c7a0edae72b4: imported, non-synthetic; accepted 1,085,
+  rejected 7, duplicates 0.
+- amazon-charger-v1: imported, non-synthetic; accepted 3,198, rejected 7,
+  duplicates 0.
+- amazon-multiple-products-v1: imported, non-synthetic; accepted 10,032,
+  rejected 108, duplicates 0.
+- amazon-usb-keyboard-mouse-v1: imported, non-synthetic; accepted 1,716,
+  rejected 1, duplicates 0.
+- history-gen-v1: generated_history, synthetic; 180 days, seed 42,
+  anchor_count 1,004, generated_count 180,720, accepted 86,470,
+  duplicates 94,250, rejected 0, completed.
+- history-gen-new-imports-v1: generated_history, synthetic; 180 days,
+  seed 42, anchor_count 13,965, generated_count 2,513,700,
+  accepted 2,513,700, duplicates 0, rejected 0, completed.
+
+Each run document can be attributed to the old imported dataset by its exact
+id and matching observation/raw provenance. The generated run documents are
+legacy 180-day runs; they are not the locally validated replacement dataset.
+
+The history run's generated_count and raw count agree, but its current
+observation count does not:
+- history-gen-v1: 180,720 generated/raw versus 93,517 surviving observations.
+  Run metadata reports 86,470 accepted and 94,250 duplicates, which itself
+  differs from the current surviving observation count.
+- history-gen-new-imports-v1: 2,513,700 generated/raw/accepted versus
+  1,266,443 surviving observations.
+
+The source code explains the run fields: the generator records expected
+generated rows and the ingestion path records accepted/duplicate outcomes;
+raw storage preserves input rows separately. It does not explain why current
+observation documents are fewer than the historical run values. No audit log
+or deletion history establishing the cause was identified in the inspected
+application schema. Treat the cause as unresolved; do not infer that missing
+observations can be recreated or that raw records are equivalent to current
+observations.
+
+Analysis job verification
+-------------------------
+Application code in backend/app/services/normalize.py creates analysis job
+IDs as digest(["analysis", run_id, product_id]) and workers update job state.
+Using those exact IDs for all verified run/product combinations:
+
+- Jobs matching a run-derived ID: 11,788 at 18:09:02 UTC.
+  Filter: {id:{$in:[the 11,788 IDs computed from the six verified
+  run IDs and each run's distinct observation product IDs]}}.
+  All matches were mode="imported", kind="analysis".
+- Their state at the query snapshot: 2,094 done and 9,694 queued.
+  These states can change while the worker is running.
+- Additional jobs referencing candidate product IDs but not matching the
+  run-derived IDs: 466. All 466 were done. Grouped by observations' run
+  membership: 446 referenced products from ee40b2c5fc9f4cc4a3d8c7a0edae72b4
+  and history-gen-v1; 14 referenced products from that source run,
+  amazon-multiple-products-v1, and history-gen-v1; 6 referenced products
+  from those source runs plus history-gen-new-imports-v1.
+- These 466 documents have no run_id or source provenance field. Their IDs
+  do not match the current code's exact run-derived ID formula. Their
+  product links point only to products observed in the six old runs, but the
+  job records themselves cannot be assigned uniquely to a run. Do not include
+  them in the cleanup filter; preserve them as ambiguous.
+- No imported jobs in this collection referenced product IDs outside the
+  six-run candidate product set at this snapshot.
+- The _repair_backup_20261101_173817_jobs collection has 771 documents and
+  zero product_id references to the candidate product set. Preserve it.
+
+Product, seller, analysis, summary, and other references
+--------------------------------------------------------
+At the 18:09:02 UTC query snapshot:
+- Distinct products in the six verified runs: 6,342; corresponding product
+  documents: 6,342.
+- Distinct sellers in the six verified runs: 4,013; corresponding seller
+  documents: 4,013.
+- Observations outside the six runs referencing those product IDs: 0.
+- Observations outside the six runs referencing those seller IDs: 0.
+- Product summaries referencing candidate products: 6,342.
+- Analysis results referencing candidate products: 2,572 at that snapshot.
+  Analysis documents have no run_id, and some are marked synthetic=false;
+  preserve all of them unless a separate reference-safe policy is approved.
+- Watchlists referencing candidate products: 0; notifications referencing
+  candidate products: 0.
+- Backup products have 771 documents and zero IDs overlapping the candidate
+  product set. Preserve the backup collection.
+- No user/session records or other cross-mode references were found in the
+  imported database. marketlens_demo and marketlens_live remain out of scope.
+
+Products, sellers, and summaries do not have per-run ownership markers. Even
+with no outside observations in this snapshot, this report does not propose
+their deletion: new import identities, API references, and retained analyses
+must be considered separately. Preserve them unless separately reviewed and
+explicitly authorized.
+
+Database count discrepancy resolved to statistics mismatch
+-----------------------------------------------------------
+At 18:05:53 UTC, exact countDocuments totals over all 18 imported collections
+summed to 4,111,134. dbStats.objects reported 3,214,351, a difference of
+896,783. Per-collection countDocuments and collStats.count matched for 15
+collections and differed for exactly:
+
+- observations: countDocuments 1,375,991; collStats.count 927,636;
+  difference 448,355.
+- raw: countDocuments 2,700,878; collStats.count 2,252,470;
+  difference 448,408.
+- analyses: countDocuments 2,558; collStats.count 2,538;
+  difference 20.
+
+The three differences sum exactly to 896,783; the sum of the collStats.count
+values equals dbStats.objects. Thus the reported discrepancy is explained by
+stale/inaccurate collection metadata counters, not by a missing subset of
+documents in countDocuments. This inspection used read-only exact collection
+counts and metadata statistics only. No validate, repair, compact, or other
+maintenance command was run. Counts may continue to change in analyses while
+the worker is active.
+
+Final proposed cleanup scope - for explicit later authorization only
+--------------------------------------------------------------------
+Safely attributable primary candidates:
+1. observations: the four source filters above, 16,031 total; and the two
+   generated-history filters above, 1,359,960 total. Combined 1,375,991,
+   which is the entire current observations collection.
+2. raw: the four source filters above, 6,458 total; and the two generated
+   filters above, 2,694,420 total. Combined 2,700,878, the entire current raw
+   collection.
+3. quarantine: {run_id:{$in:[the four exact source-run IDs]}} -> 123. These
+   are rejected old source rows; preserve unless explicitly included in a
+   future authorization.
+4. runs: {id:{$in:[the four source-run IDs and two history-run IDs]}} -> 6.
+5. jobs: the computed run-derived ID $in filter -> 11,788. Do not delete the
+   466 unmatched product-linked jobs or 771 backup jobs.
+
+Not included in the primary cleanup scope: all 6,342 product documents,
+4,013 seller documents, 6,342 product summaries, 2,572 analyses at the
+snapshot, 123 quarantine records unless separately authorized, all repair
+backup collections, the empty cleanup_candidates collection, any ambiguous
+jobs, and all demo/live/user/configuration/watchlist/notification data.
+
+Dependency/order considerations:
+1. Re-count the exact source/history observation and raw filters immediately
+   before any separately authorized cleanup; pause or account for worker
+   writes so job/analysis counts are stable.
+2. Remove only explicitly authorized observation/raw records by provenance.
+3. Remove matching run metadata and only the 11,788 computed-ID jobs if
+   explicitly authorized; preserve the 466 unmatched jobs.
+4. Treat quarantine, analyses, summaries, products, and sellers as separate
+   decisions. Do not remove them implicitly as a consequence of source/history
+   cleanup.
+5. Preserve every backup collection, marketlens_demo, marketlens_live, all
+   user/configuration data, and every record whose ownership is uncertain.
+6. Verify post-cleanup counts and indexes if a later cleanup is authorized.
+
+This addendum is an inventory and proposed plan only. No cleanup or import was
+performed. Wait for explicit user authorization before any database mutation.

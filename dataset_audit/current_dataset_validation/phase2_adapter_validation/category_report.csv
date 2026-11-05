@@ -1,0 +1,21 @@
+﻿filename,category,raw_record_count,adapted_record_count,quarantined_record_count
+cameras_dataset_enriched.csv,Cameras,1500,1500,0
+mens_clothing_dataset_enriched.csv,Hoodies & Sweatshirts,180,180,0
+mens_clothing_dataset_enriched.csv,Jackets,180,180,0
+mens_clothing_dataset_enriched.csv,Jeans,240,240,0
+mens_clothing_dataset_enriched.csv,Shirts,240,240,0
+mens_clothing_dataset_enriched.csv,T-Shirts,240,240,0
+mens_clothing_dataset_enriched.csv,Track Pants,180,180,0
+mens_clothing_dataset_enriched.csv,Trousers,240,240,0
+smart_home_dataset_enriched.csv,Smart Home,1500,1500,0
+wearables_dataset_enriched.csv,Wearables,1500,1500,0
+womens_clothing_dataset_enriched.csv,Dresses,180,180,0
+womens_clothing_dataset_enriched.csv,Ethnic Sets,120,120,0
+womens_clothing_dataset_enriched.csv,Jackets,120,120,0
+womens_clothing_dataset_enriched.csv,Jeans & Jeggings,180,180,0
+womens_clothing_dataset_enriched.csv,Kurtas & Kurtis,180,180,0
+womens_clothing_dataset_enriched.csv,Sarees,120,120,0
+womens_clothing_dataset_enriched.csv,Shirts,120,120,0
+womens_clothing_dataset_enriched.csv,Sweatshirts & Hoodies,120,120,0
+womens_clothing_dataset_enriched.csv,Tops,180,180,0
+womens_clothing_dataset_enriched.csv,Trousers,180,180,0

@@ -1,0 +1,6 @@
+﻿filename,source_row_number,scope,records_affected,reason,source_record_available
+cameras_dataset_enriched.csv,,FILE_NOT_RECORD,1500,ValueError: unsupported marketplace dataset: cameras_dataset_enriched.csv,No; adapter rejected the file before parsing rows
+mens_clothing_dataset_enriched.csv,,FILE_NOT_RECORD,1500,ValueError: unsupported marketplace dataset: mens_clothing_dataset_enriched.csv,No; adapter rejected the file before parsing rows
+smart_home_dataset_enriched.csv,,FILE_NOT_RECORD,1500,ValueError: unsupported marketplace dataset: smart_home_dataset_enriched.csv,No; adapter rejected the file before parsing rows
+wearables_dataset_enriched.csv,,FILE_NOT_RECORD,1500,ValueError: unsupported marketplace dataset: wearables_dataset_enriched.csv,No; adapter rejected the file before parsing rows
+womens_clothing_dataset_enriched.csv,,FILE_NOT_RECORD,1500,ValueError: unsupported marketplace dataset: womens_clothing_dataset_enriched.csv,No; adapter rejected the file before parsing rows

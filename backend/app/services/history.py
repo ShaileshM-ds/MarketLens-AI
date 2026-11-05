@@ -6,32 +6,42 @@ This module does not connect to MongoDB at import time.
 """
 
 import hashlib
+import json
 import random
+from copy import deepcopy
 
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+from zoneinfo import ZoneInfo
 
 
 HISTORY_RUN_ID = 'history-gen-v1'
 HISTORY_SOURCE_ID = 'history-gen-v1'
 
-DEFAULT_DAYS = 180
+DEFAULT_DAYS = 120
 DEFAULT_SEED = 42
 
 # Historical prices cannot drift more than 30% from their anchor price.
 MAX_CUMULATIVE_PRICE_CHANGE = 0.30
 
 
+SUPPORTED_HISTORY_CURRENCIES = frozenset({
+    'INR', 'USD', 'GBP', 'EUR', 'JPY', 'CAD', 'AUD',
+})
+
+
 def _anchor_seed(
     global_seed: int,
     product_id: str,
     seller_id: str,
+    listing_id: str | None = None,
 ) -> int:
     """Create a stable seed for one product/seller combination."""
 
-    key = (
-        f'{global_seed}:{product_id}:{seller_id}'
-    ).encode('utf-8')
+    identity = f'{global_seed}:{product_id}:{seller_id}'
+    if listing_id:
+        identity = f'{identity}:{listing_id}'
+    key = identity.encode('utf-8')
 
     return (
         int(hashlib.sha256(key).hexdigest(), 16)
@@ -48,14 +58,70 @@ def _minor_to_major(
     if minor is None:
         return None
 
-    if currency != 'USD':
+    if currency not in SUPPORTED_HISTORY_CURRENCIES:
         raise ValueError(
             f'Unsupported history currency: {currency}'
         )
 
+    precision = 0 if currency == 'JPY' else 2
     return format(
-        Decimal(int(minor)) / Decimal(100),
-        '.2f',
+        Decimal(int(minor)) / (Decimal(10) ** precision),
+        f'.{precision}f',
+    )
+
+
+def _major_to_minor(
+    major: str | int | float | Decimal | None,
+    currency: str,
+) -> int | None:
+    if major is None:
+        return None
+    if currency not in SUPPORTED_HISTORY_CURRENCIES:
+        raise ValueError(f'Unsupported history currency: {currency}')
+    precision = 0 if currency == 'JPY' else 2
+    amount = Decimal(str(major))
+    if not amount.is_finite() or amount < 0:
+        raise ValueError('History prices must be finite and nonnegative')
+    return int(
+        (amount * (Decimal(10) ** precision)).quantize(
+            Decimal('1'),
+            rounding=ROUND_HALF_UP,
+        )
+    )
+
+
+def _coerce_minor_units(
+    value: str | int | float | Decimal | None,
+    currency: str,
+) -> int | None:
+    """Coerce a currency value to minor units without silently guessing.
+
+    The historical generator stores prices, original prices and shipping in
+    integer minor units. Source data may arrive as major-unit decimals such as
+    246548.84; those values are converted to minor units before use.
+    Values already stored in minor units (for example, 2599 for INR) are left
+    unchanged.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError('Boolean values are not valid currency values')
+    if isinstance(value, int):
+        return int(value)
+    if currency not in SUPPORTED_HISTORY_CURRENCIES:
+        raise ValueError(f'Unsupported history currency: {currency}')
+    text = str(value).strip()
+    if not text or text.lower() in {'none', 'null'}:
+        return None
+    precision = 0 if currency == 'JPY' else 2
+    amount = Decimal(text.replace(',', ''))
+    if not amount.is_finite() or amount < 0:
+        raise ValueError('History prices must be finite and nonnegative')
+    return int(
+        (amount * (Decimal(10) ** precision)).quantize(
+            Decimal('1'),
+            rounding=ROUND_HALF_UP,
+        )
     )
 
 
@@ -111,7 +177,7 @@ def _price_walk(
     return prices
 
 
-def _parse_datetime(value):
+def _parse_datetime(value, naive_timezone=timezone.utc):
     """Return a timezone-aware datetime or None."""
 
     if value is None:
@@ -128,16 +194,21 @@ def _parse_datetime(value):
             return None
 
     if result.tzinfo is None:
-        result = result.replace(tzinfo=timezone.utc)
+        zone = (
+            ZoneInfo(naive_timezone)
+            if isinstance(naive_timezone, str)
+            else naive_timezone
+        )
+        result = result.replace(tzinfo=zone)
 
-    return result
+    return result.astimezone(timezone.utc)
 
 
-def extract_anchors(observations):
+def extract_anchors(observations, naive_timezone=timezone.utc):
     """Select the latest eligible observation per product/seller/region.
 
-    Non-USD observations are skipped; only USD is supported for
-    synthetic history generation.
+    Currency values use the application's integer minor-unit representation.
+    Naive timestamps are interpreted in ``naive_timezone``.
     """
 
     latest = {}
@@ -155,7 +226,8 @@ def extract_anchors(observations):
             continue
 
         observed_at = _parse_datetime(
-            observation.get('observed_at')
+            observation.get('observed_at'),
+            naive_timezone,
         )
 
         if observed_at is None:
@@ -167,7 +239,7 @@ def extract_anchors(observations):
             or ''
         ).upper()
 
-        if currency != 'USD':
+        if currency not in SUPPORTED_HISTORY_CURRENCIES:
             continue
 
         price = observation.get('price')
@@ -176,11 +248,11 @@ def extract_anchors(observations):
             continue
 
         try:
-            price = int(price)
+            price = _coerce_minor_units(price, currency)
         except (TypeError, ValueError):
             continue
 
-        if price <= 0:
+        if price is None or price <= 0:
             continue
 
         external_id = metadata.get('external_id')
@@ -200,6 +272,7 @@ def extract_anchors(observations):
             str(condition),
             str(marketplace),
             str(region or ''),
+            str(observation.get('listing_id') or ''),
         )
 
         anchor = {
@@ -209,6 +282,11 @@ def extract_anchors(observations):
             'currency': currency,
             'observed_at': observed_at.isoformat(),
             'price': price,
+            'original_price': (
+                observation.get('original_price')
+                if observation.get('original_price') is not None
+                else observation.get('reference_price')
+            ),
             'shipping': observation.get('shipping'),
             'tax_treatment': observation.get(
                 'tax_treatment',
@@ -240,6 +318,24 @@ def extract_anchors(observations):
             'image_url': metadata.get('image_url'),
             'country': metadata.get('country'),
             'parent_id': metadata.get('parent_id'),
+            'listing_id': observation.get('listing_id'),
+            'observation_id': observation.get(
+                'observation_id',
+                observation.get('key'),
+            ),
+            'source_record': deepcopy(
+                observation.get('source_record')
+            ),
+            'source_record_ref': observation.get(
+                'source_record_ref',
+                observation.get('raw_ref'),
+            ),
+            'source_provenance': deepcopy(
+                observation.get('provenance')
+            ),
+            'enrichment': deepcopy(
+                observation.get('enrichment')
+            ),
         }
 
         previous = latest.get(key)
@@ -258,6 +354,7 @@ def extract_anchors(observations):
             str(item['product_id']),
             str(item['seller_id']),
             str(item.get('region') or ''),
+            str(item.get('listing_id') or ''),
         )
     )
 
@@ -270,11 +367,18 @@ def generate_history(
     seed: int = DEFAULT_SEED,
 ):
     """Generate deterministic simulated observations before each anchor."""
+    return list(iter_history(anchors, days=days, seed=seed))
+
+
+def iter_history(
+    anchors,
+    days: int = DEFAULT_DAYS,
+    seed: int = DEFAULT_SEED,
+):
+    """Yield deterministic history rows without materializing the full run."""
 
     if days < 1:
         raise ValueError('days must be at least 1')
-
-    rows = []
 
     for anchor in anchors:
         anchor_dt = _parse_datetime(
@@ -288,20 +392,63 @@ def generate_history(
 
         product_id = str(anchor['product_id'])
         seller_id = str(anchor['seller_id'])
+        listing_id = anchor.get('listing_id')
+        currency = str(anchor.get('currency') or '').upper()
+        if currency not in SUPPORTED_HISTORY_CURRENCIES:
+            raise ValueError(
+                f'Unsupported history currency: {currency}'
+            )
 
         rng = random.Random(
             _anchor_seed(
                 seed,
                 product_id,
                 seller_id,
+                str(listing_id) if listing_id else None,
             )
         )
 
+        try:
+            anchor_price_minor = _coerce_minor_units(
+                anchor.get('price'),
+                currency,
+            )
+        except (TypeError, ValueError):
+            raise ValueError(
+                'Anchor must have a valid positive price in a supported currency'
+            )
+
+        if anchor_price_minor is None or anchor_price_minor <= 0:
+            raise ValueError(
+                'Anchor price must be a positive value in a supported currency'
+            )
+
         prices = _price_walk(
-            anchor['price'],
+            anchor_price_minor,
             days,
             rng,
         )
+        anchor_original = anchor.get('original_price')
+        if anchor_original is None:
+            anchor_original = anchor.get('reference_price')
+        try:
+            anchor_original_minor = (
+                None if anchor_original is None
+                else _coerce_minor_units(anchor_original, currency)
+            )
+        except (TypeError, ValueError):
+            anchor_original_minor = None
+        source_record = deepcopy(anchor.get('source_record'))
+        source_record_ref = anchor.get('source_record_ref')
+        if source_record_ref is None and source_record is not None:
+            source_record_ref = hashlib.sha256(
+                json.dumps(
+                    source_record,
+                    sort_keys=True,
+                    ensure_ascii=False,
+                    default=str,
+                ).encode('utf-8')
+            ).hexdigest()
 
         for index, price in enumerate(prices):
             observed_at = (
@@ -309,7 +456,40 @@ def generate_history(
                 - timedelta(days=days - index)
             )
 
+            historical_original = None
+            historical_discount = None
+            if anchor_original_minor is not None and anchor_price_minor > 0:
+                historical_original = int(
+                    (
+                        Decimal(anchor_original_minor)
+                        * Decimal(price)
+                        / Decimal(anchor_price_minor)
+                    ).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                )
+                if historical_original > price:
+                    historical_discount = (
+                        Decimal(historical_original - price)
+                        * Decimal(100)
+                        / Decimal(historical_original)
+                    ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                elif historical_original == price:
+                    historical_discount = Decimal('0.00')
+
+            observed_text = observed_at.astimezone(timezone.utc).isoformat()
+            stable_listing_id = str(listing_id or hashlib.sha256(
+                (
+                    f'{anchor.get("marketplace")}:{product_id}:{seller_id}:'
+                    f'{anchor.get("condition") or "unknown"}'
+                ).encode('utf-8')
+            ).hexdigest())
+            observation_id = hashlib.sha256(
+                f'{HISTORY_RUN_ID}:{product_id}:{stable_listing_id}:'
+                f'{observed_text}'.encode('utf-8')
+            ).hexdigest()
             row = {
+                'product_id': product_id,
+                'listing_id': listing_id or stable_listing_id,
+                'observation_id': observation_id,
                 'asin': anchor.get('external_id'),
                 'marketplace': anchor.get('marketplace'),
                 'variant': anchor.get('variant', {}),
@@ -319,15 +499,27 @@ def generate_history(
                 'seller_id': anchor.get('seller_id'),
                 'seller_name': anchor.get('seller_name'),
 
-                'currency': anchor.get('currency'),
+                'currency': currency,
                 'price': _minor_to_major(
                     price,
-                    anchor.get('currency'),
+                    currency,
+                ),
+                'original_price': _minor_to_major(
+                    historical_original,
+                    currency,
+                ),
+                'initial_price': _minor_to_major(
+                    historical_original,
+                    currency,
+                ),
+                'discount': (
+                    None if historical_discount is None
+                    else format(historical_discount, 'f')
                 ),
 
                 'shipping': _minor_to_major(
                     anchor.get('shipping'),
-                    anchor.get('currency'),
+                    currency,
                 ) if anchor.get('shipping') is not None else None,
 
                 'tax_treatment': anchor.get(
@@ -336,9 +528,9 @@ def generate_history(
                 ),
 
                 'reference_price': _minor_to_major(
-                    anchor.get('reference_price'),
-                    anchor.get('currency'),
-                ) if anchor.get('reference_price') is not None else None,
+                    historical_original,
+                    currency,
+                ),
 
                 'buy_box': anchor.get('buy_box'),
 
@@ -370,15 +562,22 @@ def generate_history(
                 'image_url': anchor.get('image_url'),
                 'country': anchor.get('country'),
 
-                'observed_at': observed_at.isoformat(),
+                'observed_at': observed_text,
 
                 'source_id': HISTORY_SOURCE_ID,
+                'source_type': 'generated_history',
+                'synthetic': True,
                 '_generated': True,
+                'source_observation_id': anchor.get('observation_id'),
+                'source_record_ref': source_record_ref,
+                'source_record': source_record,
+                'source_provenance': deepcopy(
+                    anchor.get('source_provenance')
+                ),
+                'enrichment': deepcopy(anchor.get('enrichment')),
             }
 
-            rows.append(row)
-
-    return rows
+            yield row
 
 
 def seed_history(
@@ -495,20 +694,19 @@ def seed_history(
 
     if not anchors:
         raise ValueError(
-            'No valid real USD anchor observations were found.'
+            'No valid real anchor observations in a supported currency '
+            'were found.'
         )
-
-    rows = generate_history(
-        anchors,
-        days=days,
-        seed=seed,
-    )
 
     # Calculate all expected deterministic observation keys.
     # This also validates the generated rows before database writes.
     expected_keys = set()
 
-    for row in rows:
+    for row in iter_history(
+        anchors,
+        days=days,
+        seed=seed,
+    ):
         _, observation = normalize(
             row,
             'imported',
@@ -559,7 +757,7 @@ def seed_history(
                 'days': days,
                 'seed': seed,
                 'anchor_count': len(anchors),
-                'generated_count': len(rows),
+                'generated_count': len(anchors) * days,
                 'updated_at': now,
             },
             '$setOnInsert': {
@@ -573,7 +771,11 @@ def seed_history(
     # DuplicateKeyError on the unique observations.key index.
     counts = ingest(
         db,
-        rows,
+        iter_history(
+            anchors,
+            days=days,
+            seed=seed,
+        ),
         'imported',
         HISTORY_RUN_ID,
         queue_analysis=False,
@@ -642,7 +844,7 @@ def seed_history(
                 'days': days,
                 'seed': seed,
                 'anchor_count': len(anchors),
-                'generated_count': len(rows),
+                'generated_count': len(anchors) * days,
                 'updated_at': datetime.now(
                     timezone.utc
                 ).isoformat(),

@@ -37,6 +37,7 @@ import json
 import sys
 import os
 import csv
+import subprocess
 import tempfile
 
 import pytest
@@ -115,6 +116,40 @@ def _offer(
     if num_of_ratings is not None:
         o['num_of_ratings'] = num_of_ratings
     return o
+
+
+@pytest.mark.parametrize(
+    ("offer_details", "expected_details", "expected_ships_from"),
+    [
+        (
+            {"ships_from": "Seller", "seller_id_type": "verified"},
+            {"ships_from": "Seller", "seller_id_type": "verified"},
+            "Seller",
+        ),
+        (
+            '{"ships_from":"Seller","seller_id_type":"verified"}',
+            {"ships_from": "Seller", "seller_id_type": "verified"},
+            "Seller",
+        ),
+        ("not-json", None, "Amazon"),
+        ("", None, "Amazon"),
+        (None, None, "Amazon"),
+        (["unexpected"], None, "Amazon"),
+    ],
+)
+def test_normalize_handles_unexpected_offer_details_types(
+    offer_details,
+    expected_details,
+    expected_ships_from,
+):
+    _, observation = normalize(
+        _raw(_offer_details=offer_details, ships_from="Amazon"),
+        "imported",
+        "run",
+    )
+
+    assert observation["seller_offer_details"] == expected_details
+    assert observation["ships_from"] == expected_ships_from
 
 
 # ---------------------------------------------------------------------------
@@ -525,24 +560,26 @@ def test_timestamp_offset_normalised_to_utc():
 # ---------------------------------------------------------------------------
 
 def test_import_normalize_no_mongodb_client():
-    import app.services.normalize as norm_module
-    import inspect
+    script = """
+import pymongo
+import sys
 
-    try:
-        from pymongo import MongoClient
+def unexpected_mongo_client(*args, **kwargs):
+    raise AssertionError('MongoClient was constructed during import')
 
-        for name, obj in vars(norm_module).items():
-            assert not isinstance(obj, MongoClient), (
-                'normalize.py must not hold a MongoClient instance '
-                f'(found {name!r})'
-            )
-    except ImportError:
-        pass
+pymongo.MongoClient = unexpected_mongo_client
+import app.services.normalize
+assert 'app.db' not in sys.modules
+"""
+    backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    result = subprocess.run(
+        [sys.executable, '-c', script],
+        cwd=backend_dir,
+        capture_output=True,
+        text=True,
+    )
 
-    source = inspect.getsource(norm_module)
-
-    assert 'from app.db import' not in source
-    assert 'import app.db' not in source
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 # ---------------------------------------------------------------------------

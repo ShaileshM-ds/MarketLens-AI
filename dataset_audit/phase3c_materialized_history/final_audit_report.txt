@@ -1,0 +1,20 @@
+Phase 3E local regeneration validation and replacement audit
+Status: corrected generator and materialization passed validation.
+Source CSVs used: 5
+Source observation identities: 7500
+Generated rows: 900000
+Unique products: 2500
+Unique sellers: 3015
+Unique listings: 7500
+Currency distribution: INR=900000
+Date coverage: 120 unique dates; range 2026-07-07 to 2026-11-03
+Blank source_observation_id rows: 0
+Invalid/mismatched source_observation_id rows: 0
+Duplicate generated observation IDs: 0
+Invalid price rows: 0
+Missing required field rows: 0
+Synthetic provenance rows: 900000
+Generation seed: 42
+Generation window: rolling 120-day interval per source anchor
+Final output path: C:\Users\Impana Dechamma\MarketLens-AI\dataset_audit\phase3c_materialized_history\historical_observations_120d.csv
+Backup path: C:\Users\Impana Dechamma\MarketLens-AI\dataset_audit\phase3c_materialized_history\historical_observations_120d_backup.csv

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 import random
 import pytest
@@ -10,10 +11,13 @@ from app.services.history import (
     HISTORY_SOURCE_ID,
     MAX_CUMULATIVE_PRICE_CHANGE,
     _anchor_seed,
+    _coerce_minor_units,
     _minor_to_major,
     _price_walk,
     extract_anchors,
     generate_history,
+    iter_history,
+    _parse_datetime,
 )
 
 from app.services.normalize import normalize, digest
@@ -104,6 +108,10 @@ def make_anchor():
 # Stable seeds
 # ---------------------------------------------------------
 
+def test_default_history_window_is_120_days():
+    assert DEFAULT_DAYS == 120
+
+
 def test_anchor_seed_is_deterministic():
     first = _anchor_seed(42, 'product-123', 'seller-123')
     second = _anchor_seed(42, 'product-123', 'seller-123')
@@ -140,13 +148,26 @@ def test_minor_to_major_converts_usd():
     assert _minor_to_major(2599, 'USD') == '25.99'
 
 
+def test_minor_to_major_converts_inr_without_value_change():
+    assert _minor_to_major(259999, 'INR') == '2599.99'
+
+
+def test_minor_to_major_converts_zero_decimal_currency():
+    assert _minor_to_major(2599, 'JPY') == '2599'
+
+
 def test_minor_to_major_preserves_none():
     assert _minor_to_major(None, 'USD') is None
 
 
-def test_minor_to_major_rejects_unsupported_currency():
+def test_coerce_minor_units_handles_major_and_minor_values():
+    assert _coerce_minor_units('246548.84', 'INR') == 24654884
+    assert _coerce_minor_units(2599, 'INR') == 2599
+
+
+def test_minor_to_major_rejects_unknown_currency():
     with pytest.raises(ValueError):
-        _minor_to_major(2599, 'INR')
+        _minor_to_major(2599, 'XYZ')
 
 
 # ---------------------------------------------------------
@@ -276,13 +297,35 @@ def test_extract_anchors_skips_missing_product_metadata():
     assert extract_anchors([observation]) == []
 
 
-def test_extract_anchors_skips_non_usd():
-    # Non-USD observations are skipped, not raised, so the run can continue.
+def test_extract_anchors_accepts_inr():
     observation = make_observation()
     observation['currency'] = 'INR'
     observation['metadata'] = dict(observation['metadata'], currency='INR')
 
-    assert extract_anchors([observation]) == []
+    anchors = extract_anchors([observation])
+    assert len(anchors) == 1
+    assert anchors[0]['currency'] == 'INR'
+
+
+def test_extract_anchors_converts_naive_ist_to_utc():
+    observation = make_observation(observed_at='2026-10-20T12:00:00')
+    anchors = extract_anchors(
+        [observation],
+        naive_timezone='Asia/Kolkata',
+    )
+
+    assert anchors[0]['observed_at'] == '2026-10-20T06:30:00+00:00'
+
+
+def test_parse_datetime_interprets_naive_ist_and_returns_utc():
+    parsed = _parse_datetime(
+        '2026-10-20T12:00:00',
+        naive_timezone='Asia/Kolkata',
+    )
+
+    assert parsed == datetime(
+        2026, 10, 20, 6, 30, tzinfo=timezone.utc
+    )
 
 
 # ---------------------------------------------------------
@@ -382,6 +425,75 @@ def test_generate_history_preserves_product_url():
     assert all(
         row['url'] == anchor['product_url']
         for row in rows
+    )
+
+
+def test_generate_history_supports_inr_and_preserves_listing_identity():
+    anchor = make_anchor()
+    anchor.update({
+        'currency': 'INR',
+        'price': 259999,
+        'original_price': 299999,
+        'listing_id': 'stable-listing-1',
+        'observation_id': 'source-observation-1',
+        'source_record': {'coupon_discount': '500'},
+        'source_record_ref': 'source-record-1',
+    })
+    rows = generate_history([anchor], days=3)
+
+    assert [row['price'] for row in rows] == [
+        _minor_to_major(price, 'INR')
+        for price in _price_walk(
+            259999,
+            3,
+            random.Random(_anchor_seed(
+                DEFAULT_SEED,
+                anchor['product_id'],
+                anchor['seller_id'],
+                'stable-listing-1',
+            )),
+        )
+    ]
+    assert all(row['currency'] == 'INR' for row in rows)
+    assert all(row['listing_id'] == 'stable-listing-1' for row in rows)
+    assert all(row['source_record'] == anchor['source_record'] for row in rows)
+    assert all(row['source_observation_id'] == 'source-observation-1' for row in rows)
+    assert len({row['observation_id'] for row in rows}) == len(rows)
+
+
+def test_generate_history_keeps_original_price_and_discount_consistent():
+    anchor = make_anchor()
+    anchor['original_price'] = anchor['price'] + 1000
+    rows = generate_history([anchor], days=5)
+
+    for row in rows:
+        selling = int(Decimal(row['price']) * 100)
+        original = int(Decimal(row['original_price']) * 100)
+        assert original >= selling
+        expected = (
+            Decimal(original - selling) * 100 / Decimal(original)
+        ).quantize(Decimal('0.01'))
+        assert Decimal(row['discount']) == expected
+
+
+def test_generate_history_accepts_decimal_major_unit_original_prices():
+    anchor = make_anchor()
+    anchor['price'] = 2599
+    anchor['original_price'] = '2999.99'
+    anchor['reference_price'] = '2999.99'
+    anchor['observation_id'] = 'source-observation-1'
+
+    rows = generate_history([anchor], days=3)
+
+    assert all(row['source_observation_id'] == 'source-observation-1' for row in rows)
+    assert all(float(row['original_price']) > float(row['price']) for row in rows)
+
+
+def test_iter_history_yields_rows_without_changing_wrapper():
+    anchor = make_anchor()
+    assert list(iter_history([anchor], days=2)) == generate_history(
+        [anchor],
+        days=2,
     )
 
 

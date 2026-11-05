@@ -1,0 +1,166 @@
+MarketLens-AI product ownership crosswalk (read-only)
+=====================================================
+Audit time: 2026-11-05T03:09:10Z to 2026-11-05T03:12:18Z
+Target database: marketlens_imported at mongodb://127.0.0.1:27018
+Container: marketlens-ai-mongo-1 (healthy)
+Worker: marketlens-ai-worker-1 exited; it was not restarted
+Databases seen but not queried: marketlens_demo, marketlens_live
+No inserts, updates, deletes, or index changes were performed.
+
+1. Classification of all 6,342 product documents
+------------------------------------------------
+A. New INR product documents: 0
+B. Old-only product documents: 6,342
+C. Shared product documents: 0
+D. Unresolved product documents: 0
+
+Every catalogue document is marketplace=amazon.com and currency=USD.
+Every catalogue id is the 24-character application hash used by the old
+normalizer. Every external_id is an Amazon ASIN-style id.
+None of those ids, external ids, or parent ids match the 2,500 INR
+product ids. Hashing the 2,500 INR product ids with the current
+application_product_id formula also collides with zero catalogue ids
+and zero observation ids.
+
+The 2,500 new INR products are not missing because they were mixed into
+the old catalogue. They were never written to products. The historical
+importer stores the canonical CSV product_id on each observation and
+does not upsert a product document.
+
+Evidence per product is in product_ownership_crosswalk.jsonl.
+Exact old product ids: old_only_product_ids.txt
+Exact old product MongoDB _ids: old_only_mongo_ids.txt
+
+Parent links: 2,389 products point at their own external_id. 0 products
+point at a different product. There is no shared product graph.
+
+2. INR observations
+-------------------
+Source files, re-adapted with the repository adapter:
+- 7,500 rows adapted
+- 0 quarantined
+- 7,500 unique source observation ids
+- 2,500 unique product ids
+- 3,015 unique seller ids
+- 7,500 unique listing ids
+
+MongoDB observations collection:
+- 900,000 documents
+- all run_id=history-inr-120d-v1
+- all source_type=generated_history
+- all synthetic=true
+- all currency=INR
+- 0 USD observations
+- 0 documents from the six old Amazon/USD run ids
+- 0 duplicate observation ids
+- 0 blank source_observation_id values
+- 7,500 distinct source_observation_id values
+- each of those 7,500 ids occurs exactly 120 times
+- all 7,500 match the adapter ids from the five source files
+- 0 source ids are missing
+- 0 extra source ids are present
+- the 2,500 observation product ids exactly match the five source files
+
+The 7,500 original source rows are not stored as observation documents.
+0 observations have observation_id equal to source_observation_id.
+0 observations have synthetic other than true.
+The raw collection has 0 documents, so the original CSV payloads are not
+in MongoDB either. They remain in the five source CSV files.
+
+Run document history-inr-120d-v1 exists, status=completed,
+source_type=historical_csv_import, generated_count=900000,
+observations_inserted=628000, observations_already_present=272000.
+It is the only run document.
+
+Canonical marketplace counts inside the 900,000 historical rows:
+Flipkart 300,000; Amazon India 180,000; Croma 180,000; Myntra 120,000;
+Amazon 120,000. There is no top-level marketplace field on these rows.
+None of these rows are amazon.com USD rows.
+
+3. Old dependents that reference only the 6,342 old products
+------------------------------------------------------------
+product_summaries: 6,342. Every summary id matches an old product id.
+0 match an INR product id. Exact ids: old_only_summaries.jsonl.
+
+analyses: 3,004 documents across 2,991 old product ids.
+0 analysis product ids fall outside the old catalogue.
+0 analysis product ids match an INR product id.
+synthetic=true: 2,542. synthetic=false: 462.
+The false analyses are still old-catalogue analyses; they have no INR id.
+Exact ids: old_only_analyses.jsonl.
+
+jobs: 466. All state=done, kind=analysis, run_id absent.
+All 466 product ids are old catalogue ids. 0 match INR.
+These were previously ambiguous among old runs. They are not ambiguous
+against the new INR dataset. Exact ids: old_only_jobs.jsonl.
+
+sellers: 4,013. 0 seller ids appear on the 900,000 INR observations.
+The 3,015 INR seller ids are absent from the sellers collection.
+Exact ids: old_only_sellers.jsonl.
+
+quarantine: 123. run ids are only the four old Amazon imports:
+amazon-multiple-products-v1=108, ee40b2c5fc9f4cc4a3d8c7a0edae72b4=7,
+amazon-charger-v1=7, amazon-usb-keyboard-mouse-v1=1.
+Exact ids: old_only_quarantine.jsonl.
+
+Repair backups are not old-only deletion candidates:
+- backup products/jobs/observations remain 771 / 771 / 1,085
+- 0 backup product ids equal a current product id
+- 466 current products share marketplace+external_id with a backup product
+Those backups must be kept. They are not a complete rollback copy of the
+live 6,342 products.
+
+4. Deletion plan — not executed
+-------------------------------
+Safe boundary: the 6,342 old product documents can be removed without
+touching the INR observations only if their exclusive dependents are
+removed by the same exact id lists.
+
+Delete only these MongoDB _id lists, in this order, after a fresh dump:
+1. old_only_jobs.jsonl                         466 jobs
+2. old_only_analyses.jsonl                   3,004 analyses
+3. old_only_summaries.jsonl                  6,342 summaries
+4. old_only_mongo_ids.txt                    6,342 products
+5. old_only_sellers.jsonl                    4,013 sellers
+6. old_only_quarantine.jsonl                   123 quarantine rows
+
+Do not use a marketplace, currency, or "not in this list" filter.
+Do not drop collections.
+Do not delete observations, runs, or the three _repair_backup collections.
+Do not touch marketlens_demo or marketlens_live.
+Do not restart the worker.
+
+Expected counts if that plan is later approved:
+
+Collection            Before      After
+observations          900,000     900,000
+raw                   0           0
+runs                  1           1
+products              6,342       0
+product_summaries     6,342       0
+analyses              3,004       0
+jobs                  466         0
+sellers               4,013       0
+quarantine            123         0
+backup products       771         771
+backup observations   1,085       1,085
+backup jobs           771         771
+
+Rollback: the existing repair backup does not contain these 6,342 product
+ids. Take a new mongodump of products, product_summaries, analyses, jobs,
+sellers, and quarantine immediately before deletion. Restore that dump to
+roll back. Leave the repair backup collections untouched.
+
+After this deletion the INR historical observations would still be intact,
+but the application catalogue would be empty. The 2,500 INR products and
+3,015 INR sellers still need to be created in a separate, explicitly
+approved write. That write must use the canonical product ids already stored
+on the observations, such as CAMERAS-001-1. It must not use the hashed
+application product id, and it must not re-import or regenerate history.
+
+5. Preserved
+------------
+- Five source CSVs in C:\Users\Impana Dechamma\final_products_files
+- historical_observations_120d.csv and its backup
+- Prior Phase 4A, 4B, and 4C reports
+- Existing application code and unrelated working-tree changes

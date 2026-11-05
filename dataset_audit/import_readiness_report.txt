@@ -1,0 +1,37 @@
+MarketLens-AI import readiness assessment (planning only)
+Audit scope: Downloads marketplace datasets and existing reports. No import or application/database change was performed.
+
+Summary
+- 1 of 11 files is already structurally canonical: mens_clothing_3_platform_dataset-1.csv. It is NOT import-ready until timezone semantics are resolved; product_url is blank for all 1,500 rows, and 168 stock_quantity values are blank (optional).
+- 10 Amazon provider exports have explicit mapping candidates but are NOT ready for direct import. They need a staged transform, provenance preservation, nested seller-offer policy, and field-level validation.
+- No dataset should be concatenated directly. Four final/snapshot pairs have near-complete cohort overlap; choose a source/capture policy before loading.
+- No source file, existing report, application code, Docker configuration, or database was changed.
+
+Per-file disposition
+1. amazon_products_32.csv (32 rows): MAPPING-READY AFTER TRANSFORM. Valid ASIN/product/seller/price fields are generally present; 9 negative discounts need formula validation. 15 rows contain nested seller arrays (77 entries; repeated seller-condition cases). Confirm cohort purpose and dedupe nested offers.
+2. charger_final_data.csv (1,185): MAPPING-READY AFTER TRANSFORM / REVIEW EXCEPTIONS. Seven rows lack both top-level and buybox final price; four seller names are blank. 632 rows have nested seller arrays (2,574 entries). Overlaps charger_snapshot; select or timestamp-dedupe.
+3. charger_snapshot.csv (1,185): MAPPING-READY AFTER TRANSFORM / REVIEW EXCEPTIONS. Three rows lack price; four seller names blank. 630 nested arrays (2,578 entries). Same ASIN cohort as charger_final_data; do not import both as duplicate listings without capture policy.
+4. coolingPad_captureCard_final.csv (469): MAPPING-READY AFTER TRANSFORM / REVIEW EXCEPTIONS. Seven rows lack price; three seller names blank. 167 nested arrays (720 entries). Overlaps snapshot; snapshot includes a few additional ASINs.
+5. coolingPad_captureCard_snapshot.csv (472): MAPPING-READY AFTER TRANSFORM / REVIEW EXCEPTIONS. Five rows lack price; four seller names blank. 172 nested arrays (733 entries). Resolve its overlap and three extra products relative to final.
+6. mens_clothing_3_platform_dataset-1.csv (1,500): SCHEMA-READY, TIME-BLOCKED. Exact 27 columns, 500 consistent products, 3 marketplaces, 1,500 distinct listing IDs, all INR. All timestamps are naive and need the authoritative timezone; all product_url values are blank. Do not reject synthetic values. Confirm coupon_discount unit and stock_quantity meaning.
+7. multiple_products_final.csv (4,335): NEEDS INVESTIGATION BEFORE IMPORT. 114 rows have no final price (none recoverable from buybox_prices); six error/dead-page rows also lack ASIN/title/marketplace/currency; 98 seller names blank. 1,552 arrays (6,829 nested entries). A payment-offer column exists but is blank. Strong overlap with snapshot (4,315 ASINs).
+8. multiple_products_snapshot.csv (4,336): NEEDS INVESTIGATION BEFORE IMPORT. 37 rows lack final price; one redirected/missing-ASIN error row; 35 seller names blank. 1,545 arrays (6,917 entries). Strong overlap with final (4,315 ASINs).
+9. sd_mu9exytq1cwty0ftme.csv (2): MANUAL REVIEW / TOO SMALL TO GENERALIZE. Valid small Amazon export, but only two rows and no nested other_sellers_prices or variant_condition column. Map with the common provider rules after confirming intended inclusion.
+10. usb_keyboard_mouse_final.csv (475): MAPPING-READY AFTER TRANSFORM / REVIEW EXCEPTION. One row lacks final price (buybox fallback absent). 265 arrays (1,381 nested entries). Overlaps snapshot completely by product ID.
+11. usb_keyboard_mouse_snapshot.csv (475): MAPPING-READY AFTER TRANSFORM / REVIEW EXCEPTION. One row lacks final price. 265 arrays (1,387 nested entries). Same cohort as final.
+
+Required pre-import gates
+1. Approve the 27-field mapping and whether import emits only Buy Box rows or also nested seller rows.
+2. Confirm timezone for the synthetic clothing timestamps. Preserve explicit provider offsets and convert to UTC; never assume a zone.
+3. Resolve missing-price rows (175 total), dead-page/redirect rows, and price conflicts without imputing a sale price.
+4. Decide how to treat all negative provider discount values: compute a positive rate from validated original/final prices and retain raw signed input for audit.
+5. Decide the authoritative file/capture for overlapping final/snapshot cohorts; retain capture timestamps if importing multiple genuine observations.
+6. Define seller/listing identity and handle repeated nested seller+condition offers with different prices; no price- or array-index-based listing IDs.
+7. Define category taxonomy and product/title conflict policy; review 322 ASIN overlaps with differing title/category values.
+8. Preserve source filename/row, raw values, capture timestamp, import run and synthetic/scraped provenance. Keep optional unknown values null.
+9. Run a dry-run transform and inspect accept/quarantine/duplicate counts before any separately authorized import.
+
+Existing code changes that will eventually be needed
+- Normalizer: it accepts INR already and converts major units to minor units (100x), so INR price support itself is present. It still needs a reviewed 27-column adapter; support explicit canonical product_id (especially shared MCL IDs across marketplaces), source/source_type/synthetic preservation, aliases/JSON parsing, seller-offer expansion/deduplication, and safe null/error handling. Its current product identity is marketplace+external_id+variant and would split a shared MCL product by marketplace. Its current source_type is derived from import mode, which can erase Synthetic provenance.
+- History generator: currently USD-only both when selecting anchors and converting minor units back to major values. INR historical generation requires explicit INR eligibility, currency-aware minor-unit formatting/rounding and tests. Do not generate any history during migration, and do not present generated observations as observed source history.
+- No backend/normalizer/history changes should be made until the mapping, identity and timezone gates are approved.

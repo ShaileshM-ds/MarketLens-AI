@@ -1,0 +1,59 @@
+MarketLens-AI source-to-canonical transformation plan
+Scope: the 11 marketplace product datasets identified in Downloads. This is a migration plan only; no source rows were modified or imported.
+
+1. Dataset inventory and dispositions
+- mens_clothing_3_platform_dataset-1.csv: 1,500 rows, already has the exact 27-column order. It is the only structurally canonical file. It still needs timestamp timezone confirmation, and product_url is blank on all 1,500 rows.
+- amazon_products_32.csv (32 rows), charger_final_data.csv (1,185), charger_snapshot.csv (1,185), coolingPad_captureCard_final.csv (469), coolingPad_captureCard_snapshot.csv (472), multiple_products_final.csv (4,335), multiple_products_snapshot.csv (4,336), sd_mu9exytq1cwty0ftme.csv (2), usb_keyboard_mouse_final.csv (475), usb_keyboard_mouse_snapshot.csv (475): ten provider-specific Amazon exports; map by the rules below, not by column position.
+- Total marketplace source rows: 14,466 (1,500 canonical clothing + 12,966 provider-export rows). Several files are overlapping capture cohorts, not disjoint additions.
+
+2. Field mapping rules for the ten Amazon exports
+- product_id <- asin (validated Amazon item/child ASIN); input_asin is a fallback only after checking equality. Do not use parent_asin as the item ID because it can collapse variants.
+- product_name <- title, fallback title_clean.
+- seller_id <- seller_id; if missing, extract the seller parameter from seller_url. For nested other_sellers_prices entries, extract seller identity from that entry's seller_url, not from the buy-box row.
+- seller_name <- seller_name or buybox_seller for the top-level offer. Nested offers use their own seller_name.
+- timestamp <- timestamp; preserve the source offset, parse as timezone-aware UTC instants, and treat it as observation/capture time.
+- price <- final_price, fallback buybox_prices.final_price. For an explicitly expanded nested seller offer, use that entry's price. Parse decimal major currency units with the currency code.
+- original_price <- initial_price, then buybox_prices.initial_price; prices_breakdown.list_price is a lower-confidence fallback. Do not use typical_price as original_price without separate semantic validation.
+- currency <- currency, uppercase. Reviewed provider rows are USD.
+- marketplace <- hostname from domain, fallback URL hostname; the reviewed exports identify Amazon.com.
+- product_url <- url, then input_url/origin_url. A live URL is not required by the canonical contract, but do not invent one.
+- availability <- availability as captured. Do not infer nested offer availability from the product's buy-box state.
+- delivery_information <- parse delivery if it is JSON-encoded text/list; retain seller scope and source text. Do not infer shipping cost from delivery wording.
+- product_rating <- rating. It is a product rating; never use it as seller_rating.
+- category <- parse categories JSON list/path, use a documented leaf-category policy for the one canonical category field, and preserve the original path in provenance/metadata.
+- source <- controlled provenance value naming the source export/file.
+- source_type <- controlled provider provenance such as scraped. Keep it separate from application import mode.
+- listing_id <- deterministic derived identity using marketplace + product_id + stable seller ID + condition/variant. No source listing_id exists in these ten files.
+- coupon_discount <- preserve coupon/coupon_description as raw offer text. Parse numeric amount or percent only when units and conditions are explicit; never fold coupon into item price discount.
+- product_condition <- variant_condition for the top-level offer when present; nested offers use their own condition. Missing condition remains unknown, not New by default.
+- Do not map shipping_cost, urgency_message, stock_quantity, seller_location, last_updated, or payment_offer from unreliable lookalikes. Leave them null unless source semantics are verified. See mapping CSV for file-specific exceptions.
+
+3. Negative discount investigation
+Across the ten Amazon exports, all 4,008 nonblank discount values are negative percentages. Where price pairs are available, 4,006 have a magnitude matching the positive markdown computed as (initial_price - final_price) / initial_price * 100, rounded to the source's whole-percent convention. Example: initial 11.99, final 9.99, source discount -17%, computed markdown 16.68%. This is consistent with the provider exporting a signed price delta, not a positive discount percentage. Recommended canonical rule: when both prices are valid and original > sale, compute the positive percentage from the prices; compare abs(source_discount) for audit only. If one price is missing or the ratio disagrees, preserve raw source evidence and leave discount unresolved. Do not blindly negate or absolute-value the source field.
+
+The clothing file has positive percentage discounts and its values match the standard formula in sampled rows. Validate all row percentages against original_price and price before accepting.
+
+4. Seller and nested offer parsing
+- other_sellers_prices is a JSON array with per-entry price, seller_name, seller_url, seller_rating, ships_from, delivery, and condition. It contains useful seller-level evidence and may be expanded only after deduplication/review.
+- Across the files with nonempty arrays, 5,243 product rows contain 23,196 entries. Many arrays repeat the same seller/condition; 2,464 product rows contain repeated seller+condition entries, and 1,453 rows contain a repeated seller+condition with differing prices. Do not treat every array element as a distinct seller or generate price-dependent listing IDs. Reconcile exact duplicates, then quarantine ambiguous same seller/condition/multiple-price groups unless the provider's offer semantics are confirmed.
+- buybox_prices is a JSON object describing buy-box price/unit-price/discount values, not seller identity. It is a useful price fallback only when its final_price is populated.
+- prices_breakdown is a JSON object with list_price/typical_price/deal_type. It may support reference-price validation but has no reliable shipping amount.
+- Coupons are conditional text; delivery can contain transient dates/countdowns. Do not parse either as stable amounts/urgency without explicit rules.
+
+5. Missing data and validation policy
+- Rows with no positive sale price cannot pass the current normalizer. Do not impute prices. There are 175 rows with no top-level final_price or buybox_prices.final_price across the exports; multiple_products_final has 114, its snapshot 37, charger final/snapshot 7/3, cooling-pad final/snapshot 7/5, USB final/snapshot 1/1. Investigate provider errors and re-scrape only if authorized; otherwise quarantine.
+- multiple_products_final contains six error rows without product identity/title/marketplace/currency; its snapshot includes a redirected/missing-ASIN error row. Preserve error codes and exclude these from product/listing imports until resolved.
+- Blank seller names with a valid seller_id are not a reason to invent a seller name. Preserve seller_id and null name; a display fallback may show the ID but must be labeled. If both seller ID and seller URL are unavailable, retain as unresolved rather than fabricate identity.
+- Missing shipping, location, stock, condition, original price, coupons, and ratings remain null; optional fields must not be fabricated. max_quantity_available looks like an order cap, not confirmed inventory. ships_from is fulfillment origin, not seller location.
+- Canonical clothing product_url is blank for all rows; URLs are not required for demonstration imports, but report the limitation. stock_quantity is blank on 168 of 1,500 rows. Its IDs/listing IDs are internally consistent (500 product IDs, 1,500 distinct listings).
+
+6. Numeric units and source provenance
+- Provider price values are decimal major units in USD. Canonical clothing uses integer-looking major INR rupees (example 1,380) and shipping/coupon fields also appear rupee amounts. Do not divide by 100 before normalize.money: the current normalizer accepts major units and converts INR to paise (x100).
+- Keep raw source text and original source file/row in staging/provenance. Do not collapse categories to broad labels or compare prices across USD/INR without a declared FX rate and effective timestamp.
+- Validate price > 0, shipping >= 0, original_price >= price where a discount is claimed, rating scales, nonnegative integer stock only when its meaning is established, and duplicate offer identities.
+
+7. Time policy
+Provider timestamps reviewed are ISO-8601 with explicit offsets (Z in sampled records). Parse the source offset and store a UTC instant; do not use import time. The clothing dataset's 1,500 timestamp and 1,500 last_updated values have no timezone offset. Ask the dataset owner for the generating timezone. Do not assume UTC or Asia/Kolkata from INR/marketplace. Only localize after that timezone is authoritatively confirmed; then convert to UTC and preserve the original timestamp/timezone in provenance. Until then, quarantine from time-series processing. last_updated is not automatically equivalent to observation timestamp; the provider exports have no independent last_updated column.
+
+8. Existing code implications (plan only)
+The normalizer's money helper already supports INR and two-decimal minor units; preserve major-unit input. The existing normalizer does not directly consume the 27-column schema and derives product IDs from marketplace + external ID + variant rather than preserving canonical product_id. It also sets source_type from import mode and the imported mode does not retain the canonical Synthetic provenance. A future adapter/change must explicitly map fields, preserve approved canonical product IDs across marketplaces, maintain source/source_type/synthetic provenance, parse nested offers without silent collisions, accept null optional fields, and apply the reviewed discount/time policies. No code change was made.

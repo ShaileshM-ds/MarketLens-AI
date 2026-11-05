@@ -1,0 +1,116 @@
+MarketLens-AI product dependency audit (read-only)
+====================================================
+Audit time: 2026-11-05T08:14:39.681448+05:30
+Target database: marketlens_imported
+Method: full read-only collection scan; repository dataset adapter used only to inspect the five named CSVs.
+No database documents/indexes, containers, source files, application code, or prior reports were modified.
+
+1. Executive findings
+----------------------
+Collections inspected: 18.
+Existing products audited: 6342; marketplace counts={'amazon.com': 6342}; currency counts={'USD': 6342}.
+Products with analyses=2991; summaries=6342; jobs=466.
+Mutually exclusive product classification counts:
+  referenced_by_preserved_analyses_only: 0
+  referenced_by_other_preserved_collections_only: 3351
+  referenced_by_multiple_collections: 2991
+  no_references_found_anywhere: 0
+  uncertain_reference_semantics: 0
+All existing products have a product_summaries id match. 2,991 also have an analyses.product_id match; 466 also have jobs. No catalogue product is proven unreferenced.
+INR observations=900,000; distinct product IDs=2,500; catalogue matches=0; missing=2,500.
+The five named CSVs provide exact source product IDs for all 2,500 missing INR IDs; each file has 1,500 rows and 500 distinct canonical IDs.
+Safe product cleanup scope established: NO. Potentially removable products proven by this audit: 0.
+
+2. Collection inventory
+-----------------------
+- _repair_backup_20261101_173817_jobs: 771 docs; backup snapshot; indexes: _id_(_id:1); product-ID fields: product_id; external-key candidates: none.
+  Semantic distinct IDs=771; catalogue matches=0; missing from catalogue=771.
+- _repair_backup_20261101_173817_observations: 1,085 docs; backup snapshot; indexes: _id_(_id:1); product-ID fields: product_id; external-key candidates: metadata.external_id, metadata.parent_id.
+  Semantic distinct IDs=771; catalogue matches=0; missing from catalogue=771.
+- _repair_backup_20261101_173817_products: 771 docs; backup snapshot; indexes: _id_(_id:1); product-ID fields: id; external-key candidates: external_id, parent_id.
+  Semantic distinct IDs=771; catalogue matches=0; missing from catalogue=771.
+- analyses: 3,004 docs; derived analysis results; indexes: _id_(_id:1); product_id_1_cutoff_1_version_1(product_id:1,cutoff:1,version:1) unique; product-ID fields: product_id; external-key candidates: none.
+  Semantic distinct IDs=2,991; catalogue matches=2,991; missing from catalogue=0.
+- cleanup_candidates_120_20261103: 0 docs; audit/cleanup staging; indexes: _id_(_id:1); product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- jobs: 466 docs; operational work queue; indexes: _id_(_id:1); id_1(id:1) unique; state_1_due_1_lease_until_1(state:1,due:1,lease_until:1); product-ID fields: product_id; external-key candidates: none.
+  Semantic distinct IDs=466; catalogue matches=466; missing from catalogue=0.
+- limits: 0 docs; operational/application data; indexes: _id_(_id:1); id_1(id:1) unique; expires_1(expires:1); product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- notifications: 0 docs; operational/application data; indexes: _id_(_id:1); user_id_1_event_key_1(user_id:1,event_key:1) unique; product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- observations: 900,000 docs; historical/current observation facts; indexes: _id_(_id:1); product_id_1_observed_at_1(product_id:1,observed_at:1); product_id_1_seller_id_1_observed_at_1(product_id:1,seller_id:1,observed_at:1); key_1(key:1) unique; observation_id_1(observation_id:1); product-ID fields: canonical.product_id, product_id; external-key candidates: none.
+  Semantic distinct IDs=2,500; catalogue matches=0; missing from catalogue=2,500.
+- product_summaries: 6,342 docs; derived product summary cache; indexes: _id_(_id:1); id_1(id:1) unique; current_1(current:1); days_-1(days:-1); category_1(category:1); brand_1(brand:1); marketplace_1(marketplace:1); currency_1(currency:1); discount.score_-1(discount.score:-1); quality.distinct_days_-1(quality.distinct_days:-1); title_1(title:1); product-ID fields: id, latest.metadata.id, latest.product_id; external-key candidates: external_id, latest.metadata.external_id, latest.metadata.parent_id, parent_id.
+  Semantic distinct IDs=6,342; catalogue matches=6,342; missing from catalogue=0.
+- products: 6,342 docs; product catalogue; indexes: _id_(_id:1); id_1(id:1) unique; marketplace_1_external_id_1(marketplace:1,external_id:1); product-ID fields: none; external-key candidates: external_id, parent_id.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- quarantine: 123 docs; rejected source records; indexes: _id_(_id:1); product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- raw: 0 docs; source payload records; indexes: _id_(_id:1); id_1(id:1) unique; product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- runs: 1 docs; run metadata; indexes: _id_(_id:1); id_1(id:1) unique; product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- sellers: 4,013 docs; operational/application data; indexes: _id_(_id:1); id_1(id:1) unique; product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- sessions: 0 docs; operational/application data; indexes: _id_(_id:1); token_1(token:1) unique; expires_1(expires:1); product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- users: 0 docs; operational/application data; indexes: _id_(_id:1); username_1(username:1) unique; product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+- watchlists: 0 docs; operational/application data; indexes: _id_(_id:1); user_id_1_product_id_1(user_id:1,product_id:1) unique; product-ID fields: none; external-key candidates: none.
+  Semantic distinct IDs=0; catalogue matches=0; missing from catalogue=0.
+
+3. Dependency details
+---------------------
+- _repair_backup_20261101_173817_jobs: 771 distinct semantic IDs; 0 match catalogue; fields: product_id=771 distinct/0 matching/771 missing.
+- _repair_backup_20261101_173817_observations: 771 distinct semantic IDs; 0 match catalogue; fields: product_id=771 distinct/0 matching/771 missing.
+- _repair_backup_20261101_173817_products: 771 distinct semantic IDs; 0 match catalogue; fields: id=771 distinct/0 matching/771 missing.
+- analyses: 2991 distinct semantic IDs; 2991 match catalogue; fields: product_id=2991 distinct/2991 matching/0 missing.
+- cleanup_candidates_120_20261103: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- jobs: 466 distinct semantic IDs; 466 match catalogue; fields: product_id=466 distinct/466 matching/0 missing.
+- limits: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- notifications: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- observations: 2500 distinct semantic IDs; 0 match catalogue; fields: canonical.product_id=2500 distinct/0 matching/2500 missing; product_id=2500 distinct/0 matching/2500 missing.
+- product_summaries: 6342 distinct semantic IDs; 6342 match catalogue; fields: id=6342 distinct/6342 matching/0 missing; latest.metadata.id=6342 distinct/6342 matching/0 missing; latest.product_id=6342 distinct/6342 matching/0 missing.
+- products: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- quarantine: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- raw: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- runs: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- sellers: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- sessions: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- users: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- watchlists: 0 distinct semantic IDs; 0 match catalogue; fields: none.
+- Product parent_id: 5887 distinct external IDs; 2389 resolve to catalogue external IDs; 0 non-self product links.
+- Preserved backups have 0 direct product.id overlaps; marketplace+external_id crosswalks match 466 current products (also present in analyses/jobs).
+Classification is mutually exclusive: uncertain exact-ID semantics; multiple collections; analyses-only; other preserved references only; no reference. Summary keys are treated as references because they match products.id and the application summary pipeline keys by product ID.
+Products referenced by preserved collections are not removable under this audit. Preserve all analyses, summaries, jobs, backups, quarantine, and sellers.
+
+4. INR identity reconstruction and safe restore proposal
+--------------------------------------------------------
+- C:\Users\Impana Dechamma\final_products_files\cameras_dataset_enriched.csv: available; rows=1500; canonical product IDs=500; adapter records=1500; quarantined=0; sha256=b4dc1614a94ff15172fda5aeae196bab7d31d10e3bca0951f9dc4f97560f1a9a.
+- C:\Users\Impana Dechamma\final_products_files\mens_clothing_dataset_enriched.csv: available; rows=1500; canonical product IDs=500; adapter records=1500; quarantined=0; sha256=e7aa64127346ce08ddab32461b1b52d576722e493c15cb92ba6917829f728525.
+- C:\Users\Impana Dechamma\final_products_files\smart_home_dataset_enriched.csv: available; rows=1500; canonical product IDs=500; adapter records=1500; quarantined=0; sha256=ce2804837862c9fb1a7afb4487f1d7200cbafd596765b7bdec9f1842011532aa.
+- C:\Users\Impana Dechamma\final_products_files\wearables_dataset_enriched.csv: available; rows=1500; canonical product IDs=500; adapter records=1500; quarantined=0; sha256=fad9e13686745ebd0881b893e5ad1c48bbf16376a1e49b56f5892fbaf27afa47.
+- C:\Users\Impana Dechamma\final_products_files\womens_clothing_dataset_enriched.csv: available; rows=1500; canonical product IDs=500; adapter records=1500; quarantined=0; sha256=ba9b3929beed131b1db0550adb0f3622298bd60731625ec994b3322751862860.
+Exact identity comparison: source IDs=2500; INR IDs=2500; intersection=2500; source-only=0; observation-only=0.
+Hash-based application product IDs from those adapted records: 7500 distinct; matches to INR observation product IDs=0.
+Product-level source-field inconsistencies across rows: 2500.
+Proposed restore (NOT EXECUTED): preflight that all 2,500 canonical source product IDs exactly equal the INR observation product-ID set and are absent from products; select one deterministic product-level row per ID after field consistency checks; create product-only documents with products.id equal to the exact canonical product_id used by observations, and map validated title, marketplace, currency, category, URL, and remaining product fields. Verify all IDs resolve afterward and do not alter observations, run metadata, analyses, or jobs.
+Do not run import_historical_csv or marketplace persist_adaptation for this restore: the former is observation-focused; the latter's application_product_id hashes the canonical ID and persists other collections. That hash does not equal the INR observation key. Have the product-ID exception reviewed before any future write.
+
+5. Provenance and preservation
+------------------------------
+- ee40b2c5fc9f4cc4a3d8c7a0edae72b4: observations run_id/exact-filter=0/0; raw run_id/exact-filter=0/0.
+- amazon-charger-v1: observations run_id/exact-filter=0/0; raw run_id/exact-filter=0/0.
+- amazon-multiple-products-v1: observations run_id/exact-filter=0/0; raw run_id/exact-filter=0/0.
+- amazon-usb-keyboard-mouse-v1: observations run_id/exact-filter=0/0; raw run_id/exact-filter=0/0.
+- history-gen-v1: observations run_id/exact-filter=0/0; raw run_id/exact-filter=0/0.
+- history-gen-new-imports-v1: observations run_id/exact-filter=0/0; raw run_id/exact-filter=0/0.
+- INR run: 900,000 observations; 2,500 product IDs; metadata={'id': 'history-inr-120d-v1', 'mode': 'imported', 'source_type': 'historical_csv_import', 'status': 'completed', 'generated_count': 900000, 'observations_inserted': 628000, 'observations_already_present': 272000}.
+- Analyses=3,004; jobs=466 {'done': 466}; quarantine=123; backup collections={'_repair_backup_20261101_173817_jobs': {'count': 771, 'sha256': '52a425c4da4412cf051924737c4a0de79ea5e2f34ea7feb595b0a444b565abd4'}, '_repair_backup_20261101_173817_observations': {'count': 1085, 'sha256': '35ca8c012a3c79fe1d6166c47a02d37adbcf8facceb12f6b7148406e9797987b'}, '_repair_backup_20261101_173817_products': {'count': 771, 'sha256': '3094433730dc8a4f9002a08e4ac2325ab0cfb08a2f926fa5631487c06b7faa75'}}.
+- Protected collection fingerprints stable during this audit: True. The analyses fingerprint also matches the post-cleanup value recorded in the Phase 4B execution log. The 466-job collection was stable during this audit; its prior execution log did not record a comparable hash.
+
+6. Complete machine-readable map
+--------------------------------
+The JSON report includes full observed field paths and indexes for every collection, per-collection reference counts, all 6,342 product IDs with dependency category and reference paths, all missing INR IDs, and a source-file mapping.
+No credentials or connection strings are included.

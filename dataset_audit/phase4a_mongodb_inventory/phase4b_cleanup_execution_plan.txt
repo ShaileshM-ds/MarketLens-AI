@@ -1,0 +1,210 @@
+MarketLens-AI Phase 4B - Proposed Cleanup Execution Plan
+========================================================
+
+Status
+------
+PROPOSAL ONLY. No database operation is authorized or performed by this
+plan. The verified inventory was read-only and observed a live worker, so
+counts below are snapshot counts, not guaranteed current counts. Obtain
+explicit approval before any mutation and revalidate every filter immediately
+before execution.
+
+Target database: marketlens_imported
+Verified deployment: local Docker Compose MongoDB, not Atlas.
+Out of scope: marketlens_demo, marketlens_live, all other databases, and the
+new locally generated INR dataset.
+
+1. Proposed deletion scope
+--------------------------
+The following filters are the report-verified, run-provenance scopes.
+Collections are named explicitly; do not broaden these to collection-wide
+deletions or substitute a product/listing-based filter.
+
+A. observations - source imports (16,031 total)
+
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ source_type:"imported", source_id:"file", synthetic:false} -> 1,085
+
+{run_id:"amazon-charger-v1",
+ source_type:"imported", source_id:"amazon-charger-v1",
+ synthetic:false} -> 3,198
+
+{run_id:"amazon-multiple-products-v1",
+ source_type:"imported", source_id:"amazon-multiple-products-v1",
+ synthetic:false} -> 10,032
+
+{run_id:"amazon-usb-keyboard-mouse-v1",
+ source_type:"imported", source_id:"amazon-usb-keyboard-mouse-v1",
+ synthetic:false} -> 1,716
+
+B. observations - generated history (1,359,960 total)
+
+{run_id:"history-gen-v1", source_type:"generated_history",
+ source_id:"history-gen-v1", synthetic:true} -> 93,517
+
+{run_id:"history-gen-new-imports-v1",
+ source_type:"generated_history",
+ source_id:"history-gen-new-imports-v1", synthetic:true} -> 1,266,443
+
+Combined observation candidate count: 1,375,991. At the report snapshot,
+these six exact groups accounted for all documents in observations. The two
+history runs are legacy 180-day runs; they are not the locally validated
+replacement dataset. Their metadata/raw counts do not equal surviving
+observation counts, and that discrepancy remains unexplained. Do not infer
+missing observations or treat raw records as equivalent observations.
+
+C. raw - source payload records (6,458 total)
+
+{run_id:"ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+ record:{$exists:true}, record._generated:{$ne:true}} -> 469
+
+{run_id:"amazon-charger-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 1,185
+
+{run_id:"amazon-multiple-products-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 4,329
+
+{run_id:"amazon-usb-keyboard-mouse-v1", record:{$exists:true},
+ record._generated:{$ne:true}} -> 475
+
+D. raw - generated history (2,694,420 total)
+
+{run_id:"history-gen-v1", record._generated:true,
+ record.source_id:"history-gen-v1"} -> 180,720
+
+{run_id:"history-gen-new-imports-v1", record._generated:true,
+ record.source_id:"history-gen-new-imports-v1"} -> 2,513,700
+
+Combined raw candidate count: 2,700,878. The six verified groups accounted
+for all raw documents in the report's live query, with no additional run
+groups or contradictory same-run markers. Raw parent records and normalized
+observations are not one-to-one.
+
+E. jobs - exact run-derived analysis jobs (11,788 at 18:09:02 UTC)
+
+Filter form:
+{id:{$in:[computed_run_derived_job_ids]}}
+
+The array must be freshly recomputed from the six verified run IDs and the
+distinct product IDs in their observations using the application's exact
+formula documented in the inventory:
+SHA256(JSON(["analysis", run_id, product_id])) with the application's
+normalize.digest serialization. The report does not enumerate the 11,788
+literal IDs, so do not substitute a broader product_id filter, a prefix
+filter, or a guessed run_id field. Verify that the recomputed ID set and
+live matched count are consistent before any later authorized deletion.
+
+All 11,788 matched jobs were mode="imported", kind="analysis" in the
+snapshot; 2,094 were done and 9,694 queued at that snapshot. Job states can
+change. Pause or otherwise safely quiesce the worker only if separately
+authorized and operationally approved; this plan does not stop or change
+services.
+
+F. runs - six verified old run metadata records
+
+{id:{$in:["ee40b2c5fc9f4cc4a3d8c7a0edae72b4",
+          "amazon-charger-v1",
+          "amazon-multiple-products-v1",
+          "amazon-usb-keyboard-mouse-v1",
+          "history-gen-v1",
+          "history-gen-new-imports-v1"]}} -> 6
+
+All six run documents were individually attributed to the old imported
+dataset by exact ID and matching observation/raw provenance. Reconfirm the
+live matches and confirm no newer run state/dependency exists before any
+authorized deletion.
+
+Proposed primary-scope total (snapshot only):
+- observations: 1,375,991
+- raw: 2,700,878
+- jobs: 11,788
+- runs: 6
+
+Counts are per collection and must not be added as a measure of unique
+business records.
+
+2. Explicit exclusions and preservation requirements
+-----------------------------------------------------
+Do not delete or alter:
+
+- The 466 unmatched product-linked jobs. Their records lack run provenance
+  and do not match the application's computed run-derived IDs; ownership is
+  ambiguous. Also preserve all 771 _repair_backup_20261101_173817_jobs.
+- products (6,342 candidate records), sellers (4,013), and product_summaries
+  (6,342). They lack per-run ownership markers and have possible replacement,
+  API, and retained-analysis dependencies. Their lack of outside observation
+  references in one snapshot does not establish exclusive ownership.
+- analyses (2,572 at the Phase 4B snapshot). They have no run_id; some are
+  synthetic=false. They are shared/product-linked references and are not
+  included.
+- quarantine (123 rejected source rows). The report proves these belong to
+  old source runs, but expressly says to preserve them unless separately
+  authorized. This baseline plan excludes them.
+- All _repair_backup_* collections, including 1,085 backup observations,
+  771 backup products, and 771 backup jobs. Preserve their rollback purpose.
+- cleanup_candidates_120_20261103, even though empty.
+- marketlens_demo, marketlens_live, users/authentication, settings,
+  sessions, limits, watchlists, notifications, unrelated records, and any
+  record with uncertain ownership.
+
+The report's watchlist/notification reference counts were zero, but that is
+not authorization to modify those collections. No product, seller, summary,
+analysis, quarantine, backup, or unrelated-data filter is part of the
+proposed primary scope.
+
+3. Recommended sequence and dependency checks
+---------------------------------------------
+For a future, separately approved execution only:
+
+1. Capture a fresh read-only baseline in marketlens_imported. Recount every
+   exact filter above, inspect representative matching records, verify no
+   contradictory provenance markers, and confirm the database/collection
+   names. Abort on any unexpected match or count change not understood.
+2. Ensure the analysis worker is quiescent only through a separately
+   authorized operational action. Recompute the run-derived job IDs from the
+   application formula; verify the exact ID set, mode/kind, and live count.
+   Do not include the 466 unmatched jobs or backup jobs.
+3. If separately authorized, delete only the verified run-derived jobs first
+   to avoid leaving run-scoped queued work that can continue processing.
+   Verify the matched count and resulting count before proceeding.
+4. If separately authorized, delete the six verified observation groups
+   from observations using the exact filters in section 1A-1B. Verify counts
+   by group and confirm preserved/unrelated observations remain unchanged.
+5. If separately authorized, delete the six verified raw groups using the
+   exact filters in section 1C-1D. Recheck that raw provenance still matches;
+   do not infer a one-to-one correspondence with observations.
+6. Delete the six run documents last, only if separately authorized and
+   after confirming no remaining records requiring those run references.
+7. Verify post-action counts for all affected groups and explicitly verify
+   preserved collections, demo/live databases, indexes, backups, ambiguous
+   jobs, and shared references remain intact. Do not run repair, compaction,
+   or other maintenance commands as part of this plan.
+
+The ordering is a dependency recommendation, not permission to execute any
+step. If revalidation reveals new or ambiguous references, stop and request
+review rather than broadening a filter.
+
+4. Storage impact supported by the inventory
+--------------------------------------------
+The inventory measured approximate BSON payload sizes for eligible
+observations: source about 31.5 MB and generated history about 2.62 GB.
+Eligible raw records: source about 111.2 MB and generated history about
+4.22 GB. These are aggregate BSON payload estimates, not estimates of disk
+space that deletion will reclaim.
+
+The imported database had about 3.07 GB allocated to data storage plus
+indexes at the inventory snapshot. WiredTiger allocation, indexes, record
+overhead, and the inventory's collection-statistics limitations mean these
+payload sizes cannot be translated into a reliable freed-space estimate.
+Document deletion may not shrink allocated files immediately. The verified
+deployment is local Compose MongoDB; Atlas quota was not measured. Therefore
+the evidence does not support a promise that cleanup will free a particular
+amount or meet a replacement dataset's storage needs.
+
+5. Authorization boundary
+-------------------------
+This file is a proposed execution plan only. No deletion, update, import,
+database modification, container action, or database maintenance operation
+was performed to prepare it. Wait for explicit user approval before any
+cleanup, and treat approval scope as limited to the exact collections and
+filters explicitly authorized.

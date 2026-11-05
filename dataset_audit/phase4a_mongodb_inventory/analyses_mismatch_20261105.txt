@@ -1,0 +1,71 @@
+MarketLens-AI analyses count mismatch - read-only investigation
+===============================================================
+Investigation time: 2026-11-05 07:01 Asia/Kolkata
+Database queried: marketlens_imported
+Scope: read-only. No database or cleanup-plan changes were made.
+
+Summary
+-------
+The live analyses count is 3,004, 432 above the approved 2,572 baseline.
+The exact 432 documents cannot be identified from the available database
+state: the baseline is only a count, not a document-level snapshot, and
+analyses have no run_id, source_id, mode, or source_type fields.
+
+Current schema and provenance
+-----------------------------
+All 3,004 documents have: product_id, cutoff, version, result, synthetic,
+and created_at. All use version "1:90:7:flexible:None".
+
+Top-level provenance groups:
+- run_id: absent on all 3,004
+- source_id: absent on all 3,004
+- mode: absent on all 3,004
+- source_type: absent on all 3,004
+- synthetic: true 2,542; false 462
+
+Nested result.provenance:
+- contains_synthetic: true 2,542; false 461; absent 1
+- evidence_type: mixed 2,542; observed_only 461; absent 1
+
+Current product and observation relationships
+---------------------------------------------
+- The six approved old runs currently cover 6,342 distinct product IDs.
+  Analyses reference 2,991 of those IDs; all 3,004 analysis documents link
+  to this old-run product set.
+- The INR run has 2,500 distinct product IDs. None of the analyses reference
+  those IDs. No analysis product ID is outside both the old-run and INR
+  product sets.
+- The 2,991 products referenced by analyses have 632,836 current observation
+  records. All 632,836 match one of the six old-run scopes; none have another
+  run_id, and none belong to the INR run.
+- This establishes current product linkage to old-run records, not unique
+  run ownership: analyses carry no run provenance, and are not authorized
+  cleanup targets.
+
+Evidence related to the +432 difference
+---------------------------------------
+The approved baseline was recorded at 2026-11-04 18:09:02 UTC. Of the current
+documents, 437 have created_at at or after that time. They have 437 distinct
+cutoff values and are all synthetic=true. created_at is overwritten during
+analysis upserts, so these 437 are recent creations or updates, not a
+definitive set of 437 newly inserted documents. The number is five greater
+than the net count difference; the historical count alone cannot identify
+which of these records account for the net +432.
+
+The worker's analysis path computes imported-mode cutoff using the current
+time and upserts by {product_id, cutoff, version}; a later job can therefore
+create a separate analysis document for an already analyzed product.
+Historical Phase 4B/4C job snapshots show processing of the old-run-derived
+analysis jobs after the 18:09:02 UTC baseline. That behavior and the 437
+recent analysis records make worker-created analyses for old-run products
+the likely explanation for the increase. This is strong circumstantial
+evidence, not a document-by-document attribution of exactly 432 records.
+
+Conclusion
+----------
+No current analysis document references an INR product or a product outside
+the six old-run product set. The 432 count difference is likely related to
+old-run analysis processing, but the exact documents and exact net additions
+remain unresolved without a baseline document snapshot or audit history.
+Preserve all analyses; no analysis deletion filter is supported by this
+investigation.

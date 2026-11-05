@@ -1,0 +1,14 @@
+MarketLens-AI Phase 2 adapter validation
+Input folder: C:\Users\Impana Dechamma\final_products_files
+Scope: exactly the five named enriched CSV files; no other datasets were enumerated or read.
+Files found and attempted: 5; processed: 5; file errors: 0.
+Total raw records read: 7500. Adapter returned 7500 adapted and 0 quarantined; accounted total: 7500.
+Adapter warning occurrences: 7500; by warning: {"coupon_discount_unit_unconfirmed": 7500}.
+All 7500 mapped records use INR and have positive numeric selling prices. No records were quarantined for required identity, currency, timestamp, or price failures. No price-derived discount, original-price, or optional-rating warnings occurred.
+Categories with mapped records: Cameras, Dresses, Ethnic Sets, Hoodies & Sweatshirts, Jackets, Jeans, Jeans & Jeggings, Kurtas & Kurtis, Sarees, Shirts, Smart Home, Sweatshirts & Hoodies, T-Shirts, Tops, Track Pants, Trousers, Wearables.
+Coupon decision: units are not established by available source metadata; no matching data-generation logic was found in the inspected repository. Values are from a discrete set and the rows are marked synthetic, but that does not prove whether values are rupee amounts, percentages, or another convention. They remain in source_record and provenance.source_coupon_discount; canonical coupon_discount is null and each nonblank value emits coupon_discount_unit_unconfirmed. Raw observed counts: {"0": 3223, "100": 1115, "150": 399, "200": 1075, "300": 1060, "500": 628}.
+Rating decision: rating is retained as individual-review enrichment, never copied to canonical product_rating. Evidence: every row contains an individual review and review_source; in cameras, smart home, and wearables the source explicitly says generated sample review and rating; in clothing, review_source says generated sample review. Clothing rows also contain canonical product_rating values that differ from the separate 3/4/5 review-level rating.
+Enrichment: image_url, review, rating, review_source are preserved in AdaptedRecord.enrichment, separate from the 27 canonical columns; original row also remains in source_record.
+Time policy: naive enriched timestamps are interpreted as Asia/Kolkata (IST) and converted to UTC for canonical timestamp and last_updated. Raw timestamp strings and source_timezone are retained in provenance/source_record. All 7500 timestamps were accepted and converted.
+Identity conflict rows: 0. Missingness is reported for all 31 source columns in missing_value_report.csv; adapter warnings and quarantines are in their respective reports.
+Readiness: adapter-level validation ran on actual records, but this is not import approval. Coupon units remain undecided, review/enrichment persistence needs integration design, and the adapter is not wired into the importer. Review any quarantined rows/warnings before integration.

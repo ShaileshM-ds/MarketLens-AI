@@ -1,15 +1,11 @@
 import os
 from datetime import datetime, timezone
 from pymongo import MongoClient, ASCENDING
+from app.review_mode import review_mode_enabled
 
 client = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017'), serverSelectionTimeoutMS=4000)
 PREFIX = os.getenv('DB_PREFIX', 'marketlens')
 MODES = ('demo', 'imported', 'live')
-
-def review_mode_enabled():
-    return os.getenv('REVIEW_MODE', '').strip().lower() in {
-        '1', 'true', 'yes', 'on'
-    }
 
 def active_modes():
     configured = os.getenv('ACTIVE_MODES')

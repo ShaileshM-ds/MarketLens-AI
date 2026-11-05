@@ -1,0 +1,6 @@
+﻿filename,raw_records,adapted_records,quarantined_records,warning_occurrences,canonical_column_count,enrichment_field_count,header_count,status,error
+cameras_dataset_enriched.csv,1500,1500,0,1500,27,4,31,PROCESSED,
+mens_clothing_dataset_enriched.csv,1500,1500,0,1500,27,4,31,PROCESSED,
+smart_home_dataset_enriched.csv,1500,1500,0,1500,27,4,31,PROCESSED,
+wearables_dataset_enriched.csv,1500,1500,0,1500,27,4,31,PROCESSED,
+womens_clothing_dataset_enriched.csv,1500,1500,0,1500,27,4,31,PROCESSED,

@@ -487,7 +487,13 @@ def products(
                 and (not category or summary['category'] == category)
                 and (not brand or summary['brand'] == brand)
                 and (not currency or summary['currency'] == currency)
-                and (not marketplace or summary['marketplace'] == marketplace)
+                and (
+                    not marketplace
+                    or marketplace in summary.get(
+                        'marketplaces',
+                        [summary['marketplace']],
+                    )
+                )
                 and (
                     not (
                         min_price > 0
@@ -557,7 +563,10 @@ def products(
     if currency:
         query['currency'] = currency
     if marketplace:
-        query['marketplace'] = marketplace
+        query['$or'] = [
+            {'marketplace': marketplace},
+            {'marketplaces': marketplace},
+        ]
     if min_price > 0 or max_price < 2**53 - 1:
         query['current'] = {'$gte': min_price, '$lte': max_price}
     if coverage == 'history':
@@ -595,6 +604,41 @@ def products(
 # ============================================================
 # OVERVIEW ENDPOINT - HIGH PERFORMANCE
 # ============================================================
+
+def overview_observation_counts(db):
+    counts = {
+        'observations': 0,
+        'source_observations': 0,
+        'synthetic_source_observations': 0,
+        'generated_history_observations': 0,
+        'synthetic_observations': 0,
+    }
+    groups = db.observations.aggregate([
+        {
+            '$group': {
+                '_id': {
+                    'source_type': '$source_type',
+                    'synthetic': '$synthetic',
+                },
+                'count': {'$sum': 1},
+            },
+        },
+    ])
+    for group in groups:
+        count = group['count']
+        source_type = group['_id'].get('source_type')
+        synthetic = group['_id'].get('synthetic') is True
+        counts['observations'] += count
+        if source_type == 'generated_history':
+            counts['generated_history_observations'] += count
+        else:
+            counts['source_observations'] += count
+            if synthetic:
+                counts['synthetic_source_observations'] += count
+        if synthetic:
+            counts['synthetic_observations'] += count
+    return counts
+
 
 @app.get('/api/v1/overview')
 def overview(mode: Mode = default_mode()):
@@ -677,7 +721,8 @@ def overview(mode: Mode = default_mode()):
         )
 
     total_products = db.products.count_documents({})
-    total_observations = db.observations.estimated_document_count()
+    observation_counts = overview_observation_counts(db)
+    total_sellers = db.sellers.count_documents({})
 
     runs = list(
         db.runs.find({}).sort('finished_at', -1).limit(5)
@@ -685,7 +730,8 @@ def overview(mode: Mode = default_mode()):
 
     return envelope({
         'products': total_products,
-        'observations': total_observations,
+        'sellers': total_sellers,
+        **observation_counts,
         'cutoff': cutoff,
         'candidate_count': candidate_count,
         'candidates': candidates,
@@ -794,7 +840,7 @@ def analysis(
     urgency: Literal['soon', 'flexible'] = 'flexible',
     budget: int | None = None
 ):
-    if window not in [7, 30, 90, 180] or horizon not in [7, 14, 30]:
+    if window not in [7, 30, 90, 120, 180] or horizon not in [7, 14, 30]:
         raise HTTPException(422, 'Unsupported window or horizon')
 
     c = cutoff_for(mode, cutoff)
@@ -858,11 +904,13 @@ def evidence(key: str, mode: Mode = default_mode()):
     if not o:
         raise HTTPException(404, 'Evidence not found')
 
-    raw = db.raw.find_one({'id': o['raw_ref']}) or {}
+    raw_ref = o.get('raw_ref') or o.get('source_record_ref')
+    raw = db.raw.find_one({'id': raw_ref}) if raw_ref else None
+    raw = raw or {}
 
     return envelope({
         'observation': o,
-        'raw': raw.get('record')
+        'raw': raw.get('record') or raw.get('source_record') or o.get('source_record'),
     }, mode)
 
 
@@ -871,7 +919,7 @@ class Watch(BaseModel):
     target: int | None = Field(None, ge=1)
     notes: str = Field('', max_length=1000)
     horizon: Literal[7, 14, 30] = 7
-    window: Literal[7, 30, 90, 180] = 90
+    window: Literal[7, 30, 90, 120, 180] = 90
     paused: bool = False
     rules: list[
         Literal[
@@ -986,7 +1034,8 @@ def read_notification(
 
 class Import(BaseModel):
     content: str = Field(max_length=7_500_000)
-    mapping: dict[str, str] = {}
+    mapping: dict[str, str] = Field(default_factory=dict)
+    filename: str | None = Field(default=None, max_length=255)
 
 
 @app.post('/api/v1/admin/import/preview')
@@ -1000,6 +1049,40 @@ def preview(
 
     current(request, mode, ['admin'])
     rate_limit(request, 'import', 10)
+
+    if body.filename:
+        from app.services.dataset_adapter import adapt_csv_content
+
+        try:
+            result = adapt_csv_content(body.content, body.filename)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        sample = [
+            {
+                'canonical': dict(record.canonical),
+                'product_identity': record.product_identity,
+                'listing_identity': record.listing_identity,
+                'observation_identity': record.observation_identity,
+                'provenance': dict(record.provenance),
+                'enrichment': dict(record.enrichment),
+                'warnings': record.warnings,
+            }
+            for record in result.records[:20]
+        ]
+        return envelope({
+            'filename': body.filename,
+            'adapted_records': len(result.records),
+            'quarantined_records': len(result.quarantined),
+            'sample': sample,
+            'quarantine_sample': [
+                {
+                    'source_filename': record.source_filename,
+                    'source_row_number': record.source_row_number,
+                    'reason': record.reason,
+                }
+                for record in result.quarantined[:20]
+            ],
+        }, mode)
 
     try:
         rows = parse_file(body.content)
@@ -1047,6 +1130,20 @@ def upload(
             422,
             'File imports must use imported-data mode'
         )
+
+    if body.filename:
+        from app.services.marketplace_importer import import_csv_content
+
+        try:
+            result = import_csv_content(
+                database(mode),
+                body.content,
+                body.filename,
+                uuid.uuid4().hex,
+            )
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        return envelope(result, mode)
 
     try:
         rows = parse_file(body.content)

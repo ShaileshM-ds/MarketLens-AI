@@ -1,0 +1,58 @@
+{
+  "report_name": "phase3b_local_history_validation",
+  "report_status": "supersedes_180_day_result",
+  "generation_window_days": 120,
+  "generation_window_interpretation": "rolling_120_day_interval",
+  "seed": 42,
+  "source_files_processed": 5,
+  "source_files": [
+    "cameras_dataset_enriched.csv",
+    "mens_clothing_dataset_enriched.csv",
+    "smart_home_dataset_enriched.csv",
+    "wearables_dataset_enriched.csv",
+    "womens_clothing_dataset_enriched.csv"
+  ],
+  "source_observation_count": 7500,
+  "source_observation_count_by_file": {
+    "cameras_dataset_enriched.csv": 1500,
+    "mens_clothing_dataset_enriched.csv": 1500,
+    "smart_home_dataset_enriched.csv": 1500,
+    "wearables_dataset_enriched.csv": 1500,
+    "womens_clothing_dataset_enriched.csv": 1500
+  },
+  "generated_observation_count": 900000,
+  "generated_observation_count_by_file": {
+    "cameras_dataset_enriched.csv": 180000,
+    "mens_clothing_dataset_enriched.csv": 180000,
+    "smart_home_dataset_enriched.csv": 180000,
+    "wearables_dataset_enriched.csv": 180000,
+    "womens_clothing_dataset_enriched.csv": 180000
+  },
+  "total_observation_count": 907500,
+  "unique_source_products": 2500,
+  "unique_source_sellers": 3015,
+  "unique_source_listings": 7500,
+  "unique_generated_products": 2500,
+  "unique_generated_sellers": 3015,
+  "unique_generated_listings": 7500,
+  "historical_date_coverage_count": 120,
+  "historical_date_range_start": "2026-07-07",
+  "historical_date_range_end": "2026-11-03",
+  "currency_distribution": {
+    "INR": 900000
+  },
+  "duplicate_generated_observation_ids": 0,
+  "identity_conflict_count": 0,
+  "invalid_price_count": 0,
+  "missing_required_field_count": 0,
+  "source_link_missing_count": 0,
+  "synthetic_provenance_count": 900000,
+  "generated_rows_per_source_product_mean": 360.0,
+  "generated_rows_per_listing_mean": 120.0,
+  "quarantined_source_records": 0,
+  "notes": [
+    "The 120-day window is interpreted as a rolling 120-day interval anchored to each source observation.",
+    "The earlier 180-day report has been superseded by this 120-day result.",
+    "All generated rows remain synthetic and source-linked for local validation only."
+  ]
+}

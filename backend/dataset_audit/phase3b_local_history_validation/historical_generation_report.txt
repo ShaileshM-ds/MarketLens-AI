@@ -1,0 +1,37 @@
+MarketLens-AI Phase 3B: Local Historical Generation and Validation
+Input folder: C:\Users\Impana Dechamma\final_products_files
+Source files processed: 5
+Source observation count: 7500
+Unique source products: 2500
+Unique source sellers: 3015
+Unique source listings: 7500
+Generated historical observation count: 1350000
+Total observation count (source + generated): 1357500
+Historical date coverage (unique dates): 180
+Historical date range: 2026-05-08 to 2026-11-03
+Generated observations per source product (mean): 540.00
+Generated observations per listing (mean): 180.00
+Currency distribution: {'INR': 1350000}
+Duplicate generated observation count: 0
+Identity conflict count: 0
+Invalid price count: 0
+Missing required field count: 0
+Source-link missing in generated rows: 0
+Synthetic provenance verification count: 1350000
+Anchor count used for generation: 7500
+
+Source-level identity summary:
+  Product IDs: 2500
+  Sellers: 3015
+  Listings: 7500
+  Currencies: {'INR': 7500}
+
+Generated provenance verification:
+  Synthetic rows counted: 1350000
+  Rows with source linkage not found: 0
+  Duplicates: 0
+
+Validation notes:
+- Historical generation used the existing validated generator and the five in-scope enriched CSV files only.
+- No MongoDB access, import, or database mutation was performed.
+- Generated rows are synthetic and retained as source-linked observations for local validation only.

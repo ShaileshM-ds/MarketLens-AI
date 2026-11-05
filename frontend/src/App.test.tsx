@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 const { apiMock } = vi.hoisted(() => ({ apiMock: vi.fn() }));
@@ -27,6 +27,8 @@ function renderApp() {
 }
 
 describe('application configuration gate', () => {
+  afterEach(cleanup);
+
   beforeEach(() => {
     apiMock.mockReset();
   });
@@ -145,5 +147,54 @@ describe('application configuration gate', () => {
     });
     expect(screen.getByRole('option', { name: 'Imported data' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Live observations' })).toBeTruthy();
+  });
+
+  it('shows imported seller totals and separates source from synthetic history', async () => {
+    apiMock.mockImplementation((path: string) => {
+      if (path === '/config') {
+        return Promise.resolve({
+          review_mode: false,
+          active_modes: ['imported'],
+        });
+      }
+      if (path === '/auth/me') {
+        return Promise.reject(new Error('Not signed in'));
+      }
+      if (path === '/overview') {
+        return Promise.resolve({
+          products: 2500,
+          sellers: 3015,
+          observations: 907500,
+          source_observations: 7500,
+          synthetic_source_observations: 7500,
+          generated_history_observations: 900000,
+          synthetic_observations: 907500,
+          candidates: [],
+          candidate_count: 0,
+          coverage: [],
+          runs: [],
+        });
+      }
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
+
+    renderApp();
+
+    expect(await screen.findByText('Total sellers')).toBeTruthy();
+    await waitFor(() => {
+      expect(
+        screen.getByText('Total sellers').parentElement
+          ?.querySelector('strong')?.textContent?.replace(/\D/g, ''),
+      ).toBe('3015');
+      expect(
+        screen.getByText('Price observations').parentElement
+          ?.querySelector('strong')?.textContent?.replace(/\D/g, ''),
+      ).toBe('907500');
+    });
+    const banner = screen.getByText(/Imported dataset/).textContent || '';
+    expect(banner).toContain('source captures');
+    expect(banner).toContain('generated-history observations (synthetic)');
+    expect(banner.replace(/\D/g, '')).toContain('7500');
+    expect(banner.replace(/\D/g, '')).toContain('900000');
   });
 });

@@ -1,0 +1,29 @@
+Phase 3C: Local Historical Materialization Validation
+Output directory: C:\Users\Impana Dechamma\MarketLens-AI\dataset_audit\phase3c_materialized_history
+Saved file: C:\Users\Impana Dechamma\MarketLens-AI\dataset_audit\phase3c_materialized_history\historical_observations_120d.csv
+Source files processed: cameras_dataset_enriched.csv, mens_clothing_dataset_enriched.csv, smart_home_dataset_enriched.csv, wearables_dataset_enriched.csv, womens_clothing_dataset_enriched.csv
+Source observation count: 7500
+Generated historical rows saved: 900000
+Expected generated rows: 900000
+Generated row count matches expected: True
+Rows per file: {"historical_observations_120d.csv": 900000}
+Unique observation IDs: 900000
+Duplicate observation IDs: 0
+Unique products: 2500
+Unique sellers: 3015
+Unique listings: 7500
+Currency distribution: {"INR": 900000}
+Date coverage count: 120
+Date range: 2026-07-07 to 2026-11-03
+Missing required field count: 0
+Invalid price count: 0
+Missing source-link count: 0
+Synthetic provenance count: 900000
+Generated IDs matching source observation IDs: 0
+Listing-product conflict count: 0
+Listing-seller conflict count: 0
+Chronological inconsistency count: 0
+Seed: 42
+Generation duration: 120 days
+Window interpretation: rolling 120-day interval per source anchor
+Note: A fresh materialization was created; no 180-day output was reused or appended.

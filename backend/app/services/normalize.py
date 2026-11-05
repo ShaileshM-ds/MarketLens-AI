@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import parse_qs, urlsplit
 
+from app.review_mode import review_mode_enabled
+
 
 def _now():
     """Return the current UTC time as an ISO-8601 string.
@@ -89,6 +91,18 @@ def money(value, currency='INR'):
 
     except (InvalidOperation, TypeError):
         raise ValueError('Invalid numeric money field')
+
+
+def _offer_details(value):
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
 
 
 def timestamp(value):
@@ -379,6 +393,7 @@ def normalize(raw, mode, run, mapping=None):
         raise ValueError(raw['_parse_error'])
 
     r = dict(raw)
+    offer_details = _offer_details(r.get('_offer_details'))
 
     for target, source in (mapping or {}).items():
         if source:
@@ -618,9 +633,9 @@ def normalize(raw, mode, run, mapping=None):
         seller_offer=bool(
             r.get('_is_additional_seller', False)
         ),
-        seller_offer_details=r.get('_offer_details'),
+        seller_offer_details=offer_details or None,
         ships_from=(
-            (r.get('_offer_details') or {}).get('ships_from')
+            offer_details.get('ships_from')
             or r.get('ships_from')
         ),
         seller_url=r.get('seller_url'),
@@ -822,7 +837,6 @@ def profile(rows):
 
 
 def queue_analysis_jobs(db, product_ids, mode, run):
-    from app.db import review_mode_enabled
     if review_mode_enabled():
         raise RuntimeError('Analysis job writes are disabled in review mode')
 
@@ -852,7 +866,6 @@ def queue_analysis_jobs(db, product_ids, mode, run):
 
 def _ingest_bulk(db, rows, mode, run, mapping=None, queue_analysis=False):
     """Batch ingestion used by historical generation."""
-    from app.db import review_mode_enabled
     if review_mode_enabled():
         raise RuntimeError('Source-data writes are disabled in review mode')
 
@@ -919,7 +932,9 @@ def _ingest_bulk(db, rows, mode, run, mapping=None, queue_analysis=False):
             )
 
             if o['seller_id']:
-                offer_details = o.get('seller_offer_details') or {}
+                offer_details = _offer_details(
+                    o.get('seller_offer_details')
+                )
                 id_type = (
                     offer_details.get('seller_id_type')
                     or seller_id_type(candidate)
@@ -1061,7 +1076,6 @@ def _ingest_bulk(db, rows, mode, run, mapping=None, queue_analysis=False):
 
 
 def ingest(db, rows, mode, run, mapping=None, queue_analysis=True):
-    from app.db import review_mode_enabled
     if review_mode_enabled():
         raise RuntimeError('Source-data writes are disabled in review mode')
 
@@ -1179,8 +1193,8 @@ def ingest(db, rows, mode, run, mapping=None, queue_analysis=True):
                         'name': o['seller_name'],
                     }
 
-                    offer_details = (
-                        o.get('seller_offer_details') or {}
+                    offer_details = _offer_details(
+                        o.get('seller_offer_details')
                     )
 
                     id_type = offer_details.get(

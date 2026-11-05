@@ -1,0 +1,6 @@
+﻿filename,offer_field,rows_with_payload,nested_offer_count,ambiguous_seller_condition_groups,malformed_payload_rows,finding
+cameras_dataset_enriched.csv,(not present),0,0,0,0,No nested seller-offer columns; nested offers not assessable from this file.
+mens_clothing_dataset_enriched.csv,(not present),0,0,0,0,No nested seller-offer columns; nested offers not assessable from this file.
+smart_home_dataset_enriched.csv,(not present),0,0,0,0,No nested seller-offer columns; nested offers not assessable from this file.
+wearables_dataset_enriched.csv,(not present),0,0,0,0,No nested seller-offer columns; nested offers not assessable from this file.
+womens_clothing_dataset_enriched.csv,(not present),0,0,0,0,No nested seller-offer columns; nested offers not assessable from this file.

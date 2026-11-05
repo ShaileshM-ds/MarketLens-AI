@@ -15,7 +15,9 @@ import app.workers.main as worker
 import app.services.alerts as alerts
 import app.services.demo as demo
 import app.services.jobs as jobs
+import app.services.normalize as normalize_module
 import app.services.summaries as summaries
+import app.review_mode as review_mode
 from app.services.auth import hash_password
 from app.services.normalize import ingest, normalize, queue_analysis_jobs
 
@@ -120,10 +122,31 @@ class ReadCollection:
             if field in document
         })
 
+    def aggregate(self, pipeline):
+        del pipeline
+        groups = {}
+        for document in self.documents:
+            identity = (
+                document.get('source_type'),
+                document.get('synthetic'),
+            )
+            groups[identity] = groups.get(identity, 0) + 1
+        return [
+            {
+                '_id': {
+                    'source_type': source_type,
+                    'synthetic': synthetic,
+                },
+                'count': count,
+            }
+            for (source_type, synthetic), count in groups.items()
+        ]
+
 
 class ReadDatabase:
     def __init__(self, products, observations, summaries):
         self.products = ReadCollection(products)
+        self.sellers = ReadCollection([])
         self.observations = ReadCollection(observations)
         self.product_summaries = ReadCollection(summaries)
         self.runs = ReadCollection([])
@@ -139,6 +162,18 @@ def request(method, path, **kwargs):
             return await client.request(method, path, **kwargs)
 
     return asyncio.run(send())
+
+
+def test_review_mode_reads_environment_dynamically(monkeypatch):
+    monkeypatch.delenv('REVIEW_MODE', raising=False)
+    assert not review_mode.review_mode_enabled()
+
+    monkeypatch.setenv('REVIEW_MODE', ' TrUe ')
+    assert review_mode.review_mode_enabled()
+    assert db_module.review_mode_enabled is review_mode.review_mode_enabled
+
+    monkeypatch.setenv('REVIEW_MODE', 'off')
+    assert not review_mode.review_mode_enabled()
 
 
 def test_review_mode_defaults_to_imported_and_restricts_modes(monkeypatch):
@@ -490,6 +525,7 @@ def test_fallback_cache_rescans_when_cutoff_reaches_future_observation(
 
 def test_direct_write_helpers_reject_review_mode(monkeypatch):
     monkeypatch.setattr(db_module, 'review_mode_enabled', lambda: True)
+    monkeypatch.setattr(normalize_module, 'review_mode_enabled', lambda: True)
     monkeypatch.setattr(summaries, 'review_mode_enabled', lambda: True)
     monkeypatch.setattr(demo, 'review_mode_enabled', lambda: True)
     monkeypatch.setattr(alerts, 'review_mode_enabled', lambda: True)
@@ -513,6 +549,8 @@ def test_direct_write_helpers_reject_review_mode(monkeypatch):
         jobs.schedule_due(None)
     with pytest.raises(RuntimeError, match='Analysis job writes'):
         queue_analysis_jobs(None, [], 'imported', 'run')
+    with pytest.raises(RuntimeError, match='Source-data writes'):
+        normalize_module._ingest_bulk(None, [], 'imported', 'run')
 
 
 def test_review_mode_computes_analysis_without_cache_write(monkeypatch):
@@ -569,6 +607,7 @@ def test_review_mode_disables_worker_helpers_and_source_ingest(monkeypatch):
     assert worker.main() is None
 
     monkeypatch.setattr(db_module, 'review_mode_enabled', lambda: True)
+    monkeypatch.setattr(normalize_module, 'review_mode_enabled', lambda: True)
     with pytest.raises(RuntimeError, match='Source-data writes'):
         ingest(None, [], 'imported', 'run')
 

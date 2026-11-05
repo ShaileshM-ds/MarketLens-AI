@@ -24,3 +24,10 @@ k8s/*.rendered.yaml
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+
+# Large local datasets and database backups
+/dataset_audit/phase3c_materialized_history/historical_observations_120d.csv
+/dataset_audit/phase3c_materialized_history/historical_observations_120d_backup.csv
+/dataset_audit/phase4d_product_ownership_crosswalk/backup_20261105T032858Z/
+/backups/marketlens_imported_before_120_days.archive.gz
+/backups/marketlens_imported_verified.archive.gz
